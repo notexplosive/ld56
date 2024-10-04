@@ -1,7 +1,8 @@
 ﻿using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
+using LD56.CartridgeManagement;
 
-namespace LD56.CartridgeManagement;
+namespace LD56.Gameplay;
 
 public class LdSession : ISession
 {
