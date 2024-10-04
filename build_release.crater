@@ -1,0 +1,14 @@
+local dotnet = lib "dotnet"
+local butler = lib "butler"
+
+files.deleteDirectory(".build")
+dotnet.publish("LD56", ".build")
+
+files.copy("Resource", ".build/Resource")
+files.copy("save.json", ".build")
+
+for i, file in ipairs(files.list(".build", true, "pdb")) do
+    files.delete(file)
+end
+
+butler.push(".build", "notexplosive", "ld56", "windows")
