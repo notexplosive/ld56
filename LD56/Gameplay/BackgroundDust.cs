@@ -7,54 +7,60 @@ namespace LD56.Gameplay;
 
 public class BackgroundDust
 {
+    private readonly Camera _camera;
+    private readonly float _scaler;
     private readonly List<DustParticle> _particles = new();
-    private Vector2 _savedCameraPosition;
 
-    public BackgroundDust(Vector2 cameraSize)
+    public BackgroundDust(Camera camera, float scaler)
     {
-        for (int i = 0; i < 16; i++)
+        _camera = camera;
+        _scaler = scaler;
+        for (int i = 0; i < 10; i++)
         {
             _particles.Add(new DustParticle()
             {
-                Position = new Vector2(cameraSize.X * Client.Random.Dirty.NextFloat(),
-                    cameraSize.Y * Client.Random.Dirty.NextFloat())
+                Position = new Vector2(camera.ViewBounds.Width * 2 * Client.Random.Dirty.NextFloat(),
+                    camera.ViewBounds.Height * 2 * Client.Random.Dirty.NextFloat())
             });
         }
     }
-    
-    public void Draw(Painter painter, RectangleF cameraViewBounds)
+
+    public Matrix Matrix => _camera.ViewBounds.MovedToZero().Moved(_camera.CenterPosition / (_scaler)).CanvasToScreen();
+
+    public void Draw(Painter painter)
     {
-        var delta = _savedCameraPosition - cameraViewBounds.Center;
-        
+        var topLeft = Vector2.Transform(_camera.OutputResolution.ToRectangleF().TopLeft, Matrix.Invert(Matrix));
+        var bottomRight = Vector2.Transform(_camera.OutputResolution.ToRectangleF().BottomRight, Matrix.Invert(Matrix));
         foreach (var particle in _particles)
         {
-            particle.Position += delta;
             var particleSize = 5;
-            painter.DrawLine(particle.Position - new Vector2(particleSize, particleSize), particle.Position + new Vector2(particleSize, particleSize), new LineDrawSettings{Thickness = 2f});
-            painter.DrawLine(particle.Position - new Vector2(particleSize, -particleSize), particle.Position + new Vector2(particleSize, -particleSize), new LineDrawSettings{Thickness = 2f});
+            painter.DrawLine(particle.Position - new Vector2(particleSize, particleSize), particle.Position + new Vector2(particleSize, particleSize), new LineDrawSettings{Thickness = 2f, Color = Color.White.WithMultipliedOpacity(1 / _scaler)});
+            painter.DrawLine(particle.Position - new Vector2(particleSize, -particleSize), particle.Position + new Vector2(particleSize, -particleSize), new LineDrawSettings{Thickness = 2f, Color = Color.White.WithMultipliedOpacity(1 / _scaler)});
+            
+            var newPosition = particle.Position;
+            if (particle.Position.X < topLeft.X)
+            {
+                newPosition.X += bottomRight.X - topLeft.X;
+            }
+            
+            if (particle.Position.X > bottomRight.X)
+            {
+                newPosition.X -= bottomRight.X - topLeft.X;
+            }
 
-            if (particle.Position.X < 0)
+            
+            if (particle.Position.Y < topLeft.Y)
             {
-                particle.Position += new Vector2(cameraViewBounds.Width, 0);
+                newPosition.Y += bottomRight.Y - topLeft.Y;
             }
             
-            if (particle.Position.X > cameraViewBounds.Width)
+            if (particle.Position.Y > bottomRight.Y)
             {
-                particle.Position -= new Vector2(cameraViewBounds.Width, 0);
+                newPosition.Y -= bottomRight.Y - topLeft.Y;
             }
             
-            if (particle.Position.Y > cameraViewBounds.Height)
-            {
-                particle.Position -= new Vector2(0, cameraViewBounds.Height);
-            }
-            
-            if (particle.Position.Y < 0)
-            {
-                particle.Position += new Vector2(0, cameraViewBounds.Height);
-            }
+            particle.Position = newPosition;
         }
-        
-        _savedCameraPosition = cameraViewBounds.Center;
     }
 }
 

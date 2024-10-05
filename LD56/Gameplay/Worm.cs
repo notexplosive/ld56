@@ -20,7 +20,7 @@ public class Worm : Entity
     private float _bankPercent;
     private float _facingAngle;
     private float _forwardSpeed;
-    private Food? _heldFood;
+    public Food? HeldFood { get; private set; }
     private float _tailFurlPercent;
 
     public Worm(World world)
@@ -64,16 +64,16 @@ public class Worm : Entity
         var leftArm = Vector2Extensions.Polar(segmentSize, leftAngle + BankPercent / 2f);
         var rightArm = Vector2Extensions.Polar(segmentSize, rightAngle + BankPercent / 2f);
 
-        painter.DrawLine(currentSegment, currentSegment + leftArm, new LineDrawSettings());
-        painter.DrawLine(currentSegment, currentSegment + rightArm, new LineDrawSettings());
-        painter.DrawLine(previousSegment, currentSegment + leftArm, new LineDrawSettings());
-        painter.DrawLine(previousSegment, currentSegment + rightArm, new LineDrawSettings());
+        painter.DrawLine(currentSegment, currentSegment + leftArm, new LineDrawSettings(){Thickness =  2});
+        painter.DrawLine(currentSegment, currentSegment + rightArm, new LineDrawSettings(){Thickness =  2});
+        painter.DrawLine(previousSegment, currentSegment + leftArm, new LineDrawSettings(){Thickness =  3});
+        painter.DrawLine(previousSegment, currentSegment + rightArm, new LineDrawSettings(){Thickness =  3});
     }
 
     public override void Draw(Painter painter)
     {
         DrawArrowHead(painter, Position, _tailSegments.First().Position, 60,
-            -1f * Ease.CubicSlowFast(_tailFurlPercent));
+            HeldFood != null ? -1f : 0f);
 
         for (var index = 0; index < _tailSegments.Count; index++)
         {
@@ -104,18 +104,20 @@ public class Worm : Entity
             BankPercent += DirectionalInput * dt * _forwardSpeed / 100f;
         }
 
-        if (_heldFood != null)
+        if (HeldFood != null)
         {
-            _heldFood.Position = Position + direction * 35;
+            var angle = Vector2Extensions.GetAngleFromUnitX(Position - _tailSegments.First().Position);
+            var headDirection = Vector2Extensions.Polar(50, angle + BankPercent /2f);
+            HeldFood.Position = Position + headDirection;
         }
 
         foreach (var entity in _world.Entities)
         {
             if (entity is Food food)
             {
-                if (Vector2.Distance(food.Position, Position) < 100)
+                if (Vector2.Distance(food.Position, Position) < 100 && !food.IsEaten && HeldFood == null)
                 {
-                    _heldFood = food;
+                    HeldFood = food;
                     food.Eat();
                 }
             }
@@ -160,5 +162,10 @@ public class Worm : Entity
     {
         _forwardSpeed += _maximumSpeed / 8f;
         _tailFurlPercent = 1f;
+    }
+
+    public void DeleteFood()
+    {
+        HeldFood = null;
     }
 }

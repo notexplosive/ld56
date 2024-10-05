@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
 using LD56.CartridgeManagement;
@@ -15,7 +17,7 @@ public class World
 public class LdSession : ISession
 {
     private readonly Camera _camera;
-    private readonly BackgroundDust _dust;
+    private readonly List<BackgroundDust> _dustLayers = new();
     private readonly World _world = new();
     private readonly Worm _worm;
     private int _buttonInput;
@@ -27,12 +29,24 @@ public class LdSession : ISession
         var screenRectangle = runtimeWindow.RenderResolution.ToRectangleF();
         _worm.Position = screenRectangle.Center + new Vector2(0, screenRectangle.Height / 4f);
 
-        _dust = new BackgroundDust(_camera.Size);
+        _dustLayers.Add(new BackgroundDust(_camera, 0.9f));
+        _dustLayers.Add(new BackgroundDust(_camera, 4f));
+        _dustLayers.Add(new BackgroundDust(_camera, 8f));
+
 
         _world.Entities.Add(_worm);
 
         var food = new Food();
+        food.Position = new Vector2(50, 50);
         _world.Entities.Add(food);
+
+        var food2 = new Food();
+        food2.Position = new Vector2(-1650, -1650);
+        _world.Entities.Add(food2);
+
+        var goal = new Goal(_worm);
+        goal.Position = new Vector2(800, 800);
+        _world.Entities.Add(goal);
     }
 
     public void OnHotReload()
@@ -59,7 +73,9 @@ public class LdSession : ISession
             entity.Update(dt);
         }
 
-        _camera.CenterPosition += (_worm.Position - _camera.CenterPosition) / 2f;
+        HandleCamera();
+
+        _world.Entities.RemoveAll(e=>e.FlaggedForDestroy);
     }
 
     public void Draw(Painter painter)
@@ -68,11 +84,12 @@ public class LdSession : ISession
 
         var canvasToScreen = _camera.CanvasToScreen;
 
-        painter.BeginSpriteBatch();
-
-        _dust.Draw(painter, _camera.ViewBounds.Inflated(80, 80));
-
-        painter.EndSpriteBatch();
+        foreach (var dustLayer in _dustLayers)
+        {
+            painter.BeginSpriteBatch(dustLayer.Matrix);
+            dustLayer.Draw(painter);
+            painter.EndSpriteBatch();
+        }
 
         painter.BeginSpriteBatch(canvasToScreen);
 
@@ -82,5 +99,86 @@ public class LdSession : ISession
         }
 
         painter.EndSpriteBatch();
+
+        painter.BeginSpriteBatch(_camera.CanvasToScreen);
+        HandleCamera(painter);
+        painter.EndSpriteBatch();
+    }
+
+    private void HandleCamera(Painter? debugPainter = null)
+    {
+        var player = _world.Entities.Find(a => a is Worm);
+
+        var focalEntities = _world.Entities.Where(a => a is IFocalPoint).ToList();
+
+        var entitiesInFocus = new List<Entity>();
+
+        foreach (var entity in focalEntities)
+        {
+            // if (Vector2.Distance(_worm.Position, entity.Position) < 2000)
+            {
+                entitiesInFocus.Add(entity);
+            }
+        }
+
+        var initialTotalPosition = Vector2.Zero;
+        var playerPosition = player?.Position ?? Vector2.Zero;
+        foreach (var entity in entitiesInFocus)
+        {
+            initialTotalPosition += entity.Position;
+        }
+
+        var initialCenter = initialTotalPosition / entitiesInFocus.Count;
+
+        var topLeft = playerPosition;
+        var bottomRight = playerPosition;
+        foreach (var entity in entitiesInFocus)
+        {
+            var offsetFromPlayer = entity.Position - playerPosition;
+
+            var distanceLimit = 1920;
+            var influence = (distanceLimit - offsetFromPlayer.Length()) / distanceLimit;
+
+            var focalPoint = (entity as IFocalPoint)!;
+            var position = playerPosition + offsetFromPlayer * focalPoint.FocalWeight() * influence;
+
+            if (influence > 0)
+            {
+                topLeft = Vector2Extensions.MinAcross(position, topLeft);
+                bottomRight = Vector2Extensions.MaxAcross(position, bottomRight);
+            }
+
+            if (debugPainter != null)
+            {
+                /*
+                Constants.CircleImage.DrawAtPosition(debugPainter, position, Scale2D.One, new DrawSettings
+                {
+                    Origin = DrawOrigin.Center, Color = Color.White.WithMultipliedOpacity(Math.Clamp(
+                        influence, 0, 1))
+                });
+                */
+            }
+        }
+
+        var allFociRectangle = RectangleF.FromCorners(topLeft, bottomRight);
+
+        var cameraRectangle = RectangleF.FromCenterAndSize(allFociRectangle.Center,
+            new Vector2(16 / 9f, 1f) * MathF.Max(allFociRectangle.LongSide, 1920));
+
+        if (debugPainter != null)
+        {
+            /*
+            debugPainter.DrawRectangle(allFociRectangle,
+                new DrawSettings {Color = Color.LightBlue.WithMultipliedOpacity(0.25f)});
+            debugPainter.DrawRectangle(
+                cameraRectangle,
+                new DrawSettings {Color = Color.Orange.WithMultipliedOpacity(0.25f)});
+                */
+        }
+
+        //var debugZoom = 2;
+        _camera.ViewBounds =
+            cameraRectangle;
+        //new RectangleF(-1920 * debugZoom, -1080 * debugZoom, 1920 * 2 * debugZoom, 1080 * 2 * debugZoom);
     }
 }

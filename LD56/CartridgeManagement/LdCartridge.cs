@@ -13,7 +13,7 @@ public class LdCartridge(IRuntime runtime) : BasicGameCartridge(runtime)
 {
     private ISession? _session;
 
-    public override CartridgeConfig CartridgeConfig { get; } = new(new Point(1600, 900), SamplerState.LinearWrap);
+    public override CartridgeConfig CartridgeConfig { get; } = new(new Point(1920, 1080), SamplerState.LinearWrap);
 
     public override void OnCartridgeStarted()
     {
