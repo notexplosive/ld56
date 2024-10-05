@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
+using ExTween;
 using Microsoft.Xna.Framework;
 
 namespace LD56.Gameplay;
@@ -10,9 +11,11 @@ namespace LD56.Gameplay;
 public class WormRenderer : Component
 {
     private readonly Entity _entity;
-    private readonly float _maxSegmentSize = 25;
+    private readonly float _maxSegmentSize = 30;
     private readonly List<TailSegment> _tailSegments = new();
     private float _tailFurlPercent;
+    private float _bankPercent;
+    private float _bankCooldown;
 
     public WormRenderer(Entity entity)
     {
@@ -23,11 +26,25 @@ public class WormRenderer : Component
         _tailSegments.Add(new TailSegment());
         _tailSegments.Add(new TailSegment());
         _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+    }
+
+    public float BankPercent
+    {
+        set
+        {
+            _bankPercent = Math.Clamp(value, -1, 1);
+            _bankCooldown = 0.1f;
+        }
+        get => _bankPercent;
     }
 
     public override void Draw(Painter painter)
     {
-        DrawArrowHead(painter, _entity.Position, _tailSegments.First().Position, 60, -1f);
+        DrawArrowHead(painter, _entity.Position, _tailSegments.First().Position, 60,
+            -1f * Ease.CubicSlowFast(_tailFurlPercent));
 
         for (var index = 0; index < _tailSegments.Count; index++)
         {
@@ -39,18 +56,18 @@ public class WormRenderer : Component
             }
 
             DrawArrowHead(painter, segment.Position, previousSegment, MathF.Abs(MathF.Sin(index / 2f)) * 50,
-                1f - _tailFurlPercent + MathF.Sin(Client.TotalElapsedTime) * 0.3f);
+                1f - Ease.CubicSlowFast(_tailFurlPercent) * 2f + MathF.Sin(Client.TotalElapsedTime) * 0.3f);
         }
     }
 
-    private static void DrawArrowHead(Painter painter, Vector2 currentSegment, Vector2 previousSegment,
+    private void DrawArrowHead(Painter painter, Vector2 currentSegment, Vector2 previousSegment,
         float segmentSize, float flapPercent)
     {
         var offset = currentSegment - previousSegment;
         var leftAngle = offset.GetAngleFromUnitX() + MathF.PI / 4f + MathF.PI / 8 * flapPercent;
         var rightAngle = offset.GetAngleFromUnitX() - MathF.PI / 4f - MathF.PI / 8 * flapPercent;
-        var leftArm = Vector2Extensions.Polar(segmentSize, leftAngle);
-        var rightArm = Vector2Extensions.Polar(segmentSize, rightAngle);
+        var leftArm = Vector2Extensions.Polar(segmentSize, leftAngle + BankPercent / 2f);
+        var rightArm = Vector2Extensions.Polar(segmentSize, rightAngle + BankPercent / 2f);
 
         painter.DrawLine(currentSegment, currentSegment + leftArm, new LineDrawSettings());
         painter.DrawLine(currentSegment, currentSegment + rightArm, new LineDrawSettings());
@@ -79,6 +96,15 @@ public class WormRenderer : Component
         }
 
         _tailFurlPercent = Math.Clamp(_tailFurlPercent - dt * 2, 0, 1f);
+
+        if (_bankCooldown > 0)
+        {
+            _bankCooldown -= dt;
+        }
+        else
+        {
+            _bankPercent *= 0.999f;
+        }
     }
 
     public void Furl()

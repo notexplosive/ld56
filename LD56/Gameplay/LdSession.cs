@@ -14,6 +14,7 @@ public class LdSession : ISession
     private int _buttonInput;
     private readonly Camera _camera;
     private readonly Entity _worm;
+    private readonly BackgroundDust _dust;
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
@@ -23,6 +24,8 @@ public class LdSession : ISession
         _worm.Position = screenRectangle.Center + new Vector2(0, screenRectangle.Height / 4f);
         var wormRenderer = _worm.AddComponent(new WormRenderer(_worm));
         _wormBehavior = _worm.AddComponent(new WormBehavior(_worm, wormRenderer));
+
+        _dust = new BackgroundDust(_camera.Size);
 
         _entities.Add(_worm);
     }
@@ -58,7 +61,15 @@ public class LdSession : ISession
     {
         painter.Clear(ColorExtensions.FromRgbHex(0x060608));
 
-        painter.BeginSpriteBatch(_camera.CanvasToScreen);
+        var canvasToScreen = _camera.CanvasToScreen;
+        
+        painter.BeginSpriteBatch();
+
+        _dust.Draw(painter, _camera.ViewBounds.Inflated(80, 80));
+        
+        painter.EndSpriteBatch();
+        
+        painter.BeginSpriteBatch(canvasToScreen);
 
         foreach (var entity in _entities)
         {

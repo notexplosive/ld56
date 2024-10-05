@@ -33,18 +33,23 @@ public class WormBehavior : Component
 
     public override void Update(float dt)
     {
-        _facingAngle += DirectionalInput * _steeringPower * dt;
+        var speedPercent = _forwardSpeed / _maximumSpeed;
+        _facingAngle += DirectionalInput * _steeringPower * (1 + speedPercent) * dt;
         var direction = Vector2Extensions.Polar(1f, _facingAngle);
         _entity.Position += direction * _forwardSpeed * dt;
         
         _forwardSpeed -= dt * 100f;
         _forwardSpeed = Math.Clamp(_forwardSpeed, _minimumSpeed, _maximumSpeed);
 
+        if (DirectionalInput != 0)
+        {
+            _wormRenderer.BankPercent += DirectionalInput * dt * _forwardSpeed / 100f;
+        }
     }
 
     public void Jet()
     {
-        _forwardSpeed += _maximumSpeed /4f;
+        _forwardSpeed += _maximumSpeed / 8f;
         _wormRenderer.Furl();
     }
 }
