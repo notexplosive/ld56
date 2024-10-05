@@ -1,28 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using ExplogineCore.Data;
+﻿using System.Collections.Generic;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
 using LD56.CartridgeManagement;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 
 namespace LD56.Gameplay;
 
 public class LdSession : ISession
 {
-    private readonly Entity _oreEntity;
-    private readonly Entity _workerEntity;
-    private List<Entity> _entities = new();
+    private readonly List<Entity> _entities = new();
+    private readonly FrogRenderer _frog;
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
-        _workerEntity = CreateWorker();
-        _workerEntity = CreateWorker();
-        _workerEntity = CreateWorker();
-        _workerEntity = CreateWorker();
-        _workerEntity = CreateWorker();
-        _workerEntity = CreateWorker();
-        _oreEntity = CreateOre();
+        var entity = new Entity();
+        var screenRectangle = runtimeWindow.RenderResolution.ToRectangleF();
+        entity.Position = screenRectangle.Center + new Vector2(0,screenRectangle.Height / 4f);
+        
+        
+        _frog = entity.AddComponent(new FrogRenderer(entity));
+
+        
+        _entities.Add(entity);
     }
 
     public void OnHotReload()
@@ -31,6 +31,10 @@ public class LdSession : ISession
 
     public void UpdateInput(ConsumableInput input, HitTestStack hitTestStack)
     {
+        if (input.Keyboard.GetButton(Keys.Space, true).WasPressed)
+        {
+            _frog.Jump();
+        }
     }
 
     public void Update(float dt)
@@ -53,31 +57,5 @@ public class LdSession : ISession
         }
 
         painter.EndSpriteBatch();
-    }
-
-    private Entity CreateOre()
-    {
-        var entity = new Entity();
-        var spriteRenderer = entity.AddComponent(new SpriteRenderer(entity, Constants.OreSheet));
-
-        entity.Position = new Vector2(500, 500);
-        entity.Depth = Depth.Middle + 100;
-
-        _entities.Add(entity);
-        return entity;
-    }
-
-    private Entity CreateWorker()
-    {
-        var entity = new Entity();
-        var spriteRenderer = entity.AddComponent(new SpriteRenderer(entity, Constants.WorkerBodySheet));
-        spriteRenderer.SetAnimation(Constants.WorkerWalkAnimation);
-        var workerBehavior = entity.AddComponent(new Worker(entity, spriteRenderer));
-        workerBehavior.Velocity = new Vector2(1, 0);
-
-        entity.Position = new Vector2(200, 200);
-        
-        _entities.Add(entity);
-        return entity;
     }
 }

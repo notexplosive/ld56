@@ -12,7 +12,5 @@ program.run("aseprite", { "-b",
     "--sheet", "Resource/atlas.png",
     "--data", "Resource/atlas.json",
     "--sheet-pack",
-    "--split-layers",
-    "--list-tags",
     "--extrude",
     unpack(asepriteFiles) })

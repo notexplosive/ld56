@@ -3,6 +3,7 @@
         "love",
         "program",
         "files",
-        "strings"
+        "strings",
+        "lib"
     ]
 }

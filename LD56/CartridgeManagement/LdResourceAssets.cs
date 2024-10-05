@@ -33,7 +33,6 @@ public class LdResourceAssets
         }
     }
 
-    public Dictionary<string, LinearFrameAnimation> Animations { get; } = new();
     public Dictionary<string, SpriteSheet> Sheets { get; } = new();
     public Dictionary<string, SoundEffectInstance> SoundInstances { get; set; } = new();
     public Dictionary<string, SoundEffect> SoundEffects { get; set; } = new();
@@ -41,6 +40,7 @@ public class LdResourceAssets
     public IEnumerable<ILoadEvent> LoadEvents(Painter painter)
     {
         var resourceFiles = Client.Debug.RepoFileSystem.GetDirectory("Resource");
+        
         yield return new VoidLoadEvent("sprite-atlas", "Sprite Atlas", () =>
         {
             var texturePath = Path.Join(resourceFiles.GetCurrentDirectory(), "atlas.png");
@@ -74,14 +74,6 @@ public class LdResourceAssets
                     var rect = frame.Value.Frame;
                     (Sheets[sheetName] as SelectFrameSpriteSheet)!.AddFrame(new Rectangle(rect.X, rect.Y, rect.Width,
                         rect.Height));
-                }
-
-                foreach (var frameTag in sheetInfo.Meta.FrameTags)
-                {
-                    // kinda sloppy way to check if we should loop the animation or not, but aseprite does not give us much to work with.
-                    var shouldLoop = frameTag.UserData.Contains("loop");
-                    var lastFrame = frameTag.To - frameTag.From + 1;
-                    Animations[frameTag.Name] = new LinearFrameAnimation(frameTag.From, lastFrame, shouldLoop);
                 }
             }
         });
