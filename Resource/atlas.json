@@ -1,4 +1,12 @@
 { "frames": {
+   "ore (main).aseprite": {
+    "frame": { "x": 391, "y": 391, "w": 80, "h": 80 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 80, "h": 80 },
+    "sourceSize": { "w": 80, "h": 80 },
+    "duration": 100
+   },
    "worker (bg) 0.aseprite": {
     "frame": { "x": 1, "y": 1, "w": 128, "h": 128 },
     "rotated": false,

@@ -4,6 +4,7 @@ using ExplogineMonoGame;
 using ExplogineMonoGame.Cartridges;
 using ExplogineMonoGame.Data;
 using LD56.Gameplay;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace LD56.CartridgeManagement;
@@ -12,7 +13,7 @@ public class LdCartridge(IRuntime runtime) : BasicGameCartridge(runtime)
 {
     private ISession? _session;
 
-    public override CartridgeConfig CartridgeConfig { get; } = new(null, SamplerState.LinearWrap);
+    public override CartridgeConfig CartridgeConfig { get; } = new(new Point(1600, 900), SamplerState.LinearWrap);
 
     public override void OnCartridgeStarted()
     {

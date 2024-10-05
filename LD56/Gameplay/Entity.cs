@@ -12,7 +12,7 @@ public class Entity : IDrawHook, IUpdateHook
     private readonly List<Component> _components = new();
     public Vector2 Position { get; set; }
     public Scale2D Scale { get; set; } = Scale2D.One; 
-    public Depth Depth { get; set; } = Depth.Middle;
+    public Depth Depth { get; set; } = Depth.Middle.AsInt;
 
     public T AddComponent<T>(T component) where T : Component
     {
