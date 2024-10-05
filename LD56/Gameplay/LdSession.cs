@@ -18,9 +18,12 @@ public class LdSession : ISession
 {
     private readonly Camera _camera;
     private readonly List<BackgroundDust> _dustLayers = new();
+    private readonly Goal _goal;
     private readonly World _world = new();
     private readonly Worm _worm;
     private int _buttonInput;
+    private Food? _food;
+    private readonly List<Entity> _pendingEntities = new();
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
@@ -33,20 +36,14 @@ public class LdSession : ISession
         _dustLayers.Add(new BackgroundDust(_camera, 4f));
         _dustLayers.Add(new BackgroundDust(_camera, 8f));
 
-
         _world.Entities.Add(_worm);
 
-        var food = new Food();
-        food.Position = new Vector2(50, 50);
-        _world.Entities.Add(food);
+        _goal = new Goal(_worm);
+        _goal.WasFed += SpawnFood;
+        _goal.Position = new Vector2(800, 800);
+        _world.Entities.Add(_goal);
 
-        var food2 = new Food();
-        food2.Position = new Vector2(-1650, -1650);
-        _world.Entities.Add(food2);
-
-        var goal = new Goal(_worm);
-        goal.Position = new Vector2(800, 800);
-        _world.Entities.Add(goal);
+        SpawnFood();
     }
 
     public void OnHotReload()
@@ -75,7 +72,9 @@ public class LdSession : ISession
 
         HandleCamera();
 
-        _world.Entities.RemoveAll(e=>e.FlaggedForDestroy);
+        _world.Entities.RemoveAll(e => e.FlaggedForDestroy);
+        _world.Entities.AddRange(_pendingEntities);
+        _pendingEntities.Clear();
     }
 
     public void Draw(Painter painter)
@@ -101,8 +100,46 @@ public class LdSession : ISession
         painter.EndSpriteBatch();
 
         painter.BeginSpriteBatch(_camera.CanvasToScreen);
-        HandleCamera(painter);
+        // debug camera
+        // HandleCamera(painter);
         painter.EndSpriteBatch();
+
+        painter.BeginSpriteBatch(_camera.CanvasToScreen);
+
+        var target = _goal.Position;
+        if (_food != null && _worm.HeldFood == null)
+        {
+            target = _food.Position;
+        }
+
+        if (!_camera.ViewBounds.Contains(target))
+        {
+            var compassDirection = (target - _worm.Position).Normalized();
+
+            var arrowBase = _worm.Position + compassDirection * 300f;
+            arrowBase = arrowBase.ConstrainedTo(_camera.ViewBounds.Inflated(0, -200));
+            var arrowHead = arrowBase + compassDirection * 200f;
+
+            painter.DrawLine(arrowBase, arrowHead,
+                new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+            painter.DrawLine(arrowHead,
+                arrowHead + Vector2Extensions.Polar(20, compassDirection.GetAngleFromUnitX() + MathF.PI * 5 / 6f),
+                new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+            painter.DrawLine(arrowHead,
+                arrowHead + Vector2Extensions.Polar(20, compassDirection.GetAngleFromUnitX() - MathF.PI * 5 / 6f),
+                new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+        }
+
+        painter.EndSpriteBatch();
+    }
+
+    private void SpawnFood()
+    {
+        _food = new Food();
+        _food.Position = _goal.Position +
+                         Vector2Extensions.Polar(1920 * 2f, Client.Random.Clean.NextFloat() * MathF.Tau);
+
+        _pendingEntities.Add(_food);
     }
 
     private void HandleCamera(Painter? debugPainter = null)

@@ -29,6 +29,8 @@ public class Goal : Entity, IFocalPoint
         return 3f;
     }
 
+    public event Action? WasFed;
+
     private void AddFullArm()
     {
         _arms.Add(new Arm(Vector2.Zero, 50));
@@ -68,6 +70,7 @@ public class Goal : Entity, IFocalPoint
                     _worm.HeldFood.Destroy();
                     _worm.DeleteFood();
                     _pendingArms++;
+                    WasFed?.Invoke();
                 }
             }
             else
