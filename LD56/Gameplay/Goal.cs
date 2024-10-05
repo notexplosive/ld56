@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
 using Microsoft.Xna.Framework;
@@ -9,30 +8,30 @@ namespace LD56.Gameplay;
 
 public class Goal : Entity, IFocalPoint
 {
-    private readonly Worm _worm;
     private readonly List<Arm> _arms = new();
+    private readonly Worm _worm;
     private int _pendingArms;
 
     public Goal(Worm worm)
     {
         _worm = worm;
 
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
-            float f = i / 10f;
-            var root = new Vector2(MathF.Sin(f * Single.Pi * 2f), MathF.Cos(f * Single.Pi * 2f)) * 15;
+            var f = i / 10f;
+            var root = new Vector2(MathF.Sin(f * float.Pi * 2f), MathF.Cos(f * float.Pi * 2f)) * 15;
             _arms.Add(new Arm(root, 12));
         }
-    }
-
-    private void AddFullArm()
-    {
-        _arms.Add(new Arm(Vector2.Zero, 50));
     }
 
     public float FocalWeight()
     {
         return 3f;
+    }
+
+    private void AddFullArm()
+    {
+        _arms.Add(new Arm(Vector2.Zero, 50));
     }
 
     public override void Draw(Painter painter)
@@ -88,7 +87,7 @@ public class Goal : Entity, IFocalPoint
             arm.Update(dt * updateSpeed);
         }
 
-        for (int i = 0; i < _pendingArms; i++)
+        for (var i = 0; i < _pendingArms; i++)
         {
             AddFullArm();
 
@@ -118,12 +117,12 @@ public class Arm
     public Vector2 Destination { get; set; }
     public float Cooldown { get; set; }
 
+    public Vector2 RelativeRoot { get; }
+
     public void Update(float dt)
     {
-        Chain.PutHeadAt(RelativeRoot,Vector2.Lerp(Chain.Head.Position, Destination, dt * 5));
+        Chain.PutHeadAt(RelativeRoot, Vector2.Lerp(Chain.Head.Position, Destination, dt * 5));
     }
-
-    public Vector2 RelativeRoot { get; }
 }
 
 public class InverseKinematicChain
