@@ -1,0 +1,164 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using ExplogineMonoGame;
+using ExplogineMonoGame.Data;
+using ExTween;
+using Microsoft.Xna.Framework;
+
+namespace LD56.Gameplay;
+
+public class Worm : Entity
+{
+    private readonly float _maximumSpeed;
+    private readonly float _maxSegmentSize = 30;
+    private readonly float _minimumSpeed;
+    private readonly float _steeringPower;
+    private readonly List<TailSegment> _tailSegments = new();
+    private readonly World _world;
+    private float _bankCooldown;
+    private float _bankPercent;
+    private float _facingAngle;
+    private float _forwardSpeed;
+    private Food? _heldFood;
+    private float _tailFurlPercent;
+
+    public Worm(World world)
+    {
+        _world = world;
+        _facingAngle = 0f;
+        _minimumSpeed = 200f;
+        _maximumSpeed = 800f;
+        _steeringPower = 1.5f;
+        _forwardSpeed = _minimumSpeed;
+
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+        _tailSegments.Add(new TailSegment());
+    }
+
+    public float BankPercent
+    {
+        set
+        {
+            _bankPercent = Math.Clamp(value, -1, 1);
+            _bankCooldown = 0.1f;
+        }
+        get => _bankPercent;
+    }
+
+    public int DirectionalInput { get; set; }
+
+    private void DrawArrowHead(Painter painter, Vector2 currentSegment, Vector2 previousSegment,
+        float segmentSize, float flapPercent)
+    {
+        var offset = currentSegment - previousSegment;
+        var leftAngle = offset.GetAngleFromUnitX() + MathF.PI / 4f + MathF.PI / 8 * flapPercent;
+        var rightAngle = offset.GetAngleFromUnitX() - MathF.PI / 4f - MathF.PI / 8 * flapPercent;
+        var leftArm = Vector2Extensions.Polar(segmentSize, leftAngle + BankPercent / 2f);
+        var rightArm = Vector2Extensions.Polar(segmentSize, rightAngle + BankPercent / 2f);
+
+        painter.DrawLine(currentSegment, currentSegment + leftArm, new LineDrawSettings());
+        painter.DrawLine(currentSegment, currentSegment + rightArm, new LineDrawSettings());
+        painter.DrawLine(previousSegment, currentSegment + leftArm, new LineDrawSettings());
+        painter.DrawLine(previousSegment, currentSegment + rightArm, new LineDrawSettings());
+    }
+
+    public override void Draw(Painter painter)
+    {
+        DrawArrowHead(painter, Position, _tailSegments.First().Position, 60,
+            -1f * Ease.CubicSlowFast(_tailFurlPercent));
+
+        for (var index = 0; index < _tailSegments.Count; index++)
+        {
+            var segment = _tailSegments[index];
+            var previousSegment = Position;
+            if (index > 0)
+            {
+                previousSegment = _tailSegments[index - 1].Position;
+            }
+
+            DrawArrowHead(painter, segment.Position, previousSegment, MathF.Abs(MathF.Sin(index / 2f)) * 50,
+                1f - Ease.CubicSlowFast(_tailFurlPercent) * 2f + MathF.Sin(Client.TotalElapsedTime) * 0.3f);
+        }
+    }
+
+    public override void Update(float dt)
+    {
+        var speedPercent = _forwardSpeed / _maximumSpeed;
+        _facingAngle += DirectionalInput * _steeringPower * (1 + speedPercent) * dt;
+        var direction = Vector2Extensions.Polar(1f, _facingAngle);
+        Position += direction * _forwardSpeed * dt;
+
+        _forwardSpeed -= dt * 100f;
+        _forwardSpeed = Math.Clamp(_forwardSpeed, _minimumSpeed, _maximumSpeed);
+
+        if (DirectionalInput != 0)
+        {
+            BankPercent += DirectionalInput * dt * _forwardSpeed / 100f;
+        }
+
+        if (_heldFood != null)
+        {
+            _heldFood.Position = Position + direction * 35;
+        }
+
+        foreach (var entity in _world.Entities)
+        {
+            if (entity is Food food)
+            {
+                if (Vector2.Distance(food.Position, Position) < 100)
+                {
+                    _heldFood = food;
+                    food.Eat();
+                }
+            }
+        }
+
+        UpdateDrawingRelatedStuff(dt);
+    }
+
+    private void UpdateDrawingRelatedStuff(float dt)
+    {
+        for (var i = 0; i < _tailSegments.Count; i++)
+        {
+            var positionOfPreviousSegment = Position;
+
+            if (i > 0)
+            {
+                positionOfPreviousSegment = _tailSegments[i - 1].Position;
+            }
+
+            var currentSegment = _tailSegments[i];
+
+            if (Vector2.Distance(currentSegment.Position, positionOfPreviousSegment) > _maxSegmentSize)
+            {
+                var displacement = currentSegment.Position - positionOfPreviousSegment;
+                currentSegment.Position = positionOfPreviousSegment + displacement.Normalized() * _maxSegmentSize;
+            }
+        }
+
+        _tailFurlPercent = Math.Clamp(_tailFurlPercent - dt * 2, 0, 1f);
+
+        if (_bankCooldown > 0)
+        {
+            _bankCooldown -= dt;
+        }
+        else
+        {
+            _bankPercent *= 0.999f;
+        }
+    }
+
+    public void Jet()
+    {
+        _forwardSpeed += _maximumSpeed / 8f;
+        _tailFurlPercent = 1f;
+    }
+}

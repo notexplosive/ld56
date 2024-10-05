@@ -5,7 +5,7 @@ using ExplogineMonoGame.AssetManagement;
 using ExplogineMonoGame.Data;
 
 namespace LD56.Gameplay;
-
+/*
 public class SpriteRenderer : Component
 {
     private readonly Entity _entity;
@@ -47,3 +47,4 @@ public class SpriteRenderer : Component
         _time += dt;
     }
 }
+*/

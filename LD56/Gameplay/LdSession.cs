@@ -7,27 +7,32 @@ using Microsoft.Xna.Framework.Input;
 
 namespace LD56.Gameplay;
 
+public class World
+{
+    public List<Entity> Entities { get; } = new();
+}
+
 public class LdSession : ISession
 {
-    private readonly List<Entity> _entities = new();
-    private readonly WormBehavior _wormBehavior;
-    private int _buttonInput;
     private readonly Camera _camera;
-    private readonly Entity _worm;
     private readonly BackgroundDust _dust;
+    private readonly World _world = new();
+    private readonly Worm _worm;
+    private int _buttonInput;
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
         _camera = new Camera(runtimeWindow.RenderResolution.ToVector2());
-        _worm = new Entity();
+        _worm = new Worm(_world);
         var screenRectangle = runtimeWindow.RenderResolution.ToRectangleF();
         _worm.Position = screenRectangle.Center + new Vector2(0, screenRectangle.Height / 4f);
-        var wormRenderer = _worm.AddComponent(new WormRenderer(_worm));
-        _wormBehavior = _worm.AddComponent(new WormBehavior(_worm, wormRenderer));
 
         _dust = new BackgroundDust(_camera.Size);
 
-        _entities.Add(_worm);
+        _world.Entities.Add(_worm);
+
+        var food = new Food();
+        _world.Entities.Add(food);
     }
 
     public void OnHotReload()
@@ -39,17 +44,17 @@ public class LdSession : ISession
         var leftInput = input.Keyboard.GetButton(Keys.Left).IsDown || input.Keyboard.GetButton(Keys.A).IsDown ? -1 : 0;
         var rightInput = input.Keyboard.GetButton(Keys.Right).IsDown || input.Keyboard.GetButton(Keys.D).IsDown ? 1 : 0;
         _buttonInput = leftInput + rightInput;
-        _wormBehavior.DirectionalInput = _buttonInput;
+        _worm.DirectionalInput = _buttonInput;
 
         if (input.Keyboard.GetButton(Keys.Space).WasPressed)
         {
-            _wormBehavior.Jet();
+            _worm.Jet();
         }
     }
 
     public void Update(float dt)
     {
-        foreach (var entity in _entities)
+        foreach (var entity in _world.Entities)
         {
             entity.Update(dt);
         }
@@ -62,16 +67,16 @@ public class LdSession : ISession
         painter.Clear(ColorExtensions.FromRgbHex(0x060608));
 
         var canvasToScreen = _camera.CanvasToScreen;
-        
+
         painter.BeginSpriteBatch();
 
         _dust.Draw(painter, _camera.ViewBounds.Inflated(80, 80));
-        
+
         painter.EndSpriteBatch();
-        
+
         painter.BeginSpriteBatch(canvasToScreen);
 
-        foreach (var entity in _entities)
+        foreach (var entity in _world.Entities)
         {
             entity.Draw(painter);
         }

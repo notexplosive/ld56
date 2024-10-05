@@ -7,7 +7,7 @@ using ExTween;
 using Microsoft.Xna.Framework;
 
 namespace LD56.Gameplay;
-
+/*
 public class FrogRenderer : Component
 {
     private readonly Entity _entity;
@@ -235,3 +235,4 @@ public class FrogRenderer : Component
         Splash(2);
     }
 }
+*/
