@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ExplogineCore.Data;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
 using ExTween;
+using LD56.CartridgeManagement;
 using Microsoft.Xna.Framework;
 
 namespace LD56.Gameplay;
@@ -147,6 +149,7 @@ public class Player : Entity
             {
                 if (Vector2.Distance(food.Position, Position) < 100 && !food.IsEaten && HeldFood == null)
                 {
+                    LdResourceAssets.Instance.PlaySound("pickup_food", new SoundEffectSettings{Cached = true});
                     HeldFood = food;
                     food.Eat();
                 }
@@ -164,6 +167,10 @@ public class Player : Entity
                     Position = obstacle.Position + displacement.Normalized() * radius;
                     _facingAngle = displacement.GetAngleFromUnitX();
                     _forwardSpeed /= 2f;
+                    LdResourceAssets.Instance.PlaySound("noise_hit", new SoundEffectSettings
+                    {
+                        Pitch = 1f
+                    });
                 }
             }
         }
@@ -242,6 +249,12 @@ public class Player : Entity
         {
             return;
         }
+        
+        LdResourceAssets.Instance.PlaySound("noise_hit", new SoundEffectSettings
+        {
+            Volume = 0.5f,
+            Pitch = -1f
+        });
 
         _recoveryCooldown = 1f;
 

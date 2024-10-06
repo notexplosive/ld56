@@ -8,11 +8,11 @@ namespace LD56.Gameplay;
 
 public class Enemy : Entity, IFocalPoint
 {
+    private readonly float _maxSpeed = 1700f;
+    private readonly float _speed = 50f;
     private readonly World _world;
     private LineDrawSettings _lineStyle;
-    private readonly float _maxSpeed = 1700f;
     private float _motionTime;
-    private readonly float _speed = 50f;
     private Player? _target;
     private Vector2 _velocity;
 
@@ -20,6 +20,8 @@ public class Enemy : Entity, IFocalPoint
     {
         _world = world;
     }
+
+    public bool IsAlert => _target != null;
 
     public float FocalWeight()
     {
@@ -111,11 +113,11 @@ public class Enemy : Entity, IFocalPoint
             if (_target.IsHurtAt(Position))
             {
                 _target.TakeDamage();
-                
+
                 // speed boost after chomping player (should help player get away
                 _velocity += displacement.Normalized() * _speed * dt * 80f;
             }
-            
+
             if (_velocity.Length() > _maxSpeed)
             {
                 _velocity = _velocity.Normalized() * _maxSpeed;
@@ -142,9 +144,9 @@ public class Enemy : Entity, IFocalPoint
     {
         var obstacles = _world.Entities.Where(a => a is Obstacle).Cast<Obstacle>().ToList();
 
-        for (int i = 5; i < 100; i++)
+        for (var i = 5; i < 100; i++)
         {
-            var probe = Vector2.Lerp(Position, targetPosition, i/100f);
+            var probe = Vector2.Lerp(Position, targetPosition, i / 100f);
 
             foreach (var obstacle in obstacles)
             {

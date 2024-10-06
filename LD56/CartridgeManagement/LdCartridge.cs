@@ -28,6 +28,7 @@ public class LdCartridge(IRuntime runtime) : BasicGameCartridge(runtime)
             {
                 _session = _gameSession;
                 _gameSession.World.LoadLevel(_editorSession.CurrentLevel);
+                _gameSession.PlayAllSounds();
             }
         };
 

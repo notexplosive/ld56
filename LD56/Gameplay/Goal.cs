@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using ExplogineCore.Data;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
+using LD56.CartridgeManagement;
 using Microsoft.Xna.Framework;
 
 namespace LD56.Gameplay;
@@ -13,6 +15,7 @@ public class Goal : Entity, IFocalPoint
     public Player? Player { get; private set; }
     private int _pendingArms;
     private float _spawnTimer;
+    public float ConsumeTimer { get; private set; }
 
     public Goal(World world)
     {
@@ -43,6 +46,8 @@ public class Goal : Entity, IFocalPoint
 
     private void AddFullArm()
     {
+        ConsumeTimer = 1f;
+        LdResourceAssets.Instance.PlaySound("grow_tendril", new SoundEffectSettings{Pitch = 1f});
         _arms.Add(new Arm(Vector2.Zero, 50));
     }
 
@@ -66,6 +71,15 @@ public class Goal : Entity, IFocalPoint
 
     public override void Update(float dt)
     {
+        if (ConsumeTimer > 0)
+        {
+            ConsumeTimer -= dt;
+        }
+        else
+        {
+            ConsumeTimer = 0f;
+        }
+        
         for (var index = 0; index < _arms.Count; index++)
         {
             var arm = _arms[index];

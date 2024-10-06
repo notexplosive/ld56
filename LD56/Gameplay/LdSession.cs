@@ -16,7 +16,8 @@ public class LdSession : ISession
     private readonly Camera _camera;
     private readonly SoundEffectInstance _coinSound;
     private readonly List<BackgroundDust> _dustLayers = new();
-    private readonly SoundEffectInstance _monsterSound;
+    private readonly SoundEffectInstance _goalSound;
+    private readonly SoundEffectInstance _enemySound;
 
     private int _buttonInput;
     private bool _leftIsDown;
@@ -34,12 +35,17 @@ public class LdSession : ISession
         _coinSound = LdResourceAssets.Instance.SoundInstances["coin_near"];
         _coinSound.Volume = 0f;
         _coinSound.IsLooped = true;
-        LdResourceAssets.Instance.SoundInstances["coin_near"].Play();
+        _coinSound.Play();
 
-        _monsterSound = LdResourceAssets.Instance.SoundInstances["monster_breath"];
-        _monsterSound.Volume = 0f;
-        _monsterSound.IsLooped = true;
-        LdResourceAssets.Instance.SoundInstances["monster_breath"].Play();
+        _goalSound = LdResourceAssets.Instance.SoundInstances["monster_breath"];
+        _goalSound.Volume = 0f;
+        _goalSound.IsLooped = true;
+        _goalSound.Play();
+        
+        _enemySound = LdResourceAssets.Instance.SoundInstances["enemy_near"];
+        _enemySound.Volume = 0f;
+        _enemySound.IsLooped = true;
+        _enemySound.Play();
     }
 
     public World World { get; } = new();
@@ -68,9 +74,22 @@ public class LdSession : ISession
         if (input.Keyboard.GetButton(Keys.F4).WasPressed)
         {
             RequestEditor?.Invoke();
-            _coinSound.Stop();
-            _monsterSound.Stop();
+            StopAllSounds();
         }
+    }
+
+    private void StopAllSounds()
+    {
+        _coinSound.Stop();
+        _goalSound.Stop();
+        _enemySound.Stop();
+    }
+
+    public void PlayAllSounds()
+    {
+        _coinSound.Play();
+        _goalSound.Play();
+        _enemySound.Play();
     }
 
     public void Update(float dt)
@@ -117,13 +136,36 @@ public class LdSession : ISession
             _coinSound.Volume = 0f;
         }
 
-        _monsterSound.Volume = monsterBreathVolume;
+        _goalSound.Volume = monsterBreathVolume;
+        _goalSound.Pitch = World.Goal.ConsumeTimer;
 
         if (World.HasRequestedReload)
         {
             World.LoadCurrentLevel();
             World.HasRequestedReload = false;
         }
+
+        if (IsAnyEnemyAlert())
+        {
+            _enemySound.Volume = 0.5f;
+        }
+        else
+        {
+            _enemySound.Volume = 0f;
+        }
+    }
+
+    private bool IsAnyEnemyAlert()
+    {
+        foreach (var enemy in World.Entities.Where(a => a is Enemy).Cast<Enemy>())
+        {
+            if (enemy.IsAlert)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void Draw(Painter painter)
