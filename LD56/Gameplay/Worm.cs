@@ -142,11 +142,18 @@ public class Worm : Entity
                     var displacement = Position - obstacle.Position;
                     Position = obstacle.Position + displacement.Normalized() * radius;
                     _facingAngle = displacement.GetAngleFromUnitX();
+                    _forwardSpeed /= 2f;
                 }
             }
         }
 
         UpdateDrawingRelatedStuff(dt);
+    }
+
+    public override bool EditorHitTest(Vector2 mousePosition)
+    {
+        // fails always
+        return false;
     }
 
     private void UpdateDrawingRelatedStuff(float dt)

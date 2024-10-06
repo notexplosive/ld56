@@ -10,53 +10,33 @@ using Microsoft.Xna.Framework.Input;
 
 namespace LD56.Gameplay;
 
-public class World
-{
-    public List<Entity> Entities { get; } = new();
-}
-
 public class LdSession : ISession
 {
     private readonly Camera _camera;
-    private readonly List<BackgroundDust> _dustLayers = new();
-    private readonly Goal _goal;
-    private readonly World _world = new();
-    private readonly Worm _worm;
-    private int _buttonInput;
-    private Food? _food;
-    private readonly List<Entity> _pendingEntities = new();
     private readonly SoundEffectInstance _coinSound;
+    private readonly List<BackgroundDust> _dustLayers = new();
     private readonly SoundEffectInstance _monsterSound;
+    public World World { get; } = new();
+    public event Action? RequestEditor;
+
+    private int _buttonInput;
+    private Food? _nearestFood;
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
         _camera = new Camera(runtimeWindow.RenderResolution.ToVector2());
-        _worm = new Worm(_world);
-        var screenRectangle = runtimeWindow.RenderResolution.ToRectangleF();
-        _worm.Position = screenRectangle.Center + new Vector2(0, screenRectangle.Height / 4f);
-
+        
         _dustLayers.Add(new BackgroundDust(_camera, 0.9f));
         _dustLayers.Add(new BackgroundDust(_camera, 4f));
         _dustLayers.Add(new BackgroundDust(_camera, 8f));
 
-        _world.Entities.Add(_worm);
-
-        _goal = new Goal(_worm);
-        _goal.WasFed += SpawnFood;
-        _goal.Position = new Vector2(800, 800);
-        _world.Entities.Add(_goal);
-
-        var obstacle = new Obstacle();
-        obstacle.Position = new Vector2(-600, -600);
-        _world.Entities.Add(obstacle);
-        
-        SpawnFood();
+        World.Entities.Add(World.Player);
 
         _coinSound = LdResourceAssets.Instance.SoundInstances["coin_near"];
         _coinSound.Volume = 0f;
         _coinSound.IsLooped = true;
         LdResourceAssets.Instance.SoundInstances["coin_near"].Play();
-        
+
         _monsterSound = LdResourceAssets.Instance.SoundInstances["monster_breath"];
         _monsterSound.Volume = 0f;
         _monsterSound.IsLooped = true;
@@ -72,32 +52,37 @@ public class LdSession : ISession
         var leftInput = input.Keyboard.GetButton(Keys.Left).IsDown || input.Keyboard.GetButton(Keys.A).IsDown ? -1 : 0;
         var rightInput = input.Keyboard.GetButton(Keys.Right).IsDown || input.Keyboard.GetButton(Keys.D).IsDown ? 1 : 0;
         _buttonInput = leftInput + rightInput;
-        _worm.DirectionalInput = _buttonInput;
+        World.Player.DirectionalInput = _buttonInput;
 
         if (input.Keyboard.GetButton(Keys.Space).WasPressed)
         {
+        }
+        
+        if (input.Keyboard.GetButton(Keys.F4).WasPressed)
+        {
+            RequestEditor?.Invoke();
+            _coinSound.Stop();
+            _monsterSound.Stop();
         }
     }
 
     public void Update(float dt)
     {
-        foreach (var entity in _world.Entities)
+        foreach (var entity in World.Entities)
         {
             entity.Update(dt);
         }
 
         HandleCamera();
 
-        _world.Entities.RemoveAll(e => e.FlaggedForDestroy);
-        _world.Entities.AddRange(_pendingEntities);
-        _pendingEntities.Clear();
+        World.Entities.RemoveAll(e => e.FlaggedForDestroy);
 
-        var monsterBreathVolume = Math.Clamp(1 - Vector2.Distance(_worm.Position, _goal.Position) / 2000, 0, 1);
+        var monsterBreathVolume = Math.Clamp(1 - Vector2.Distance(World.Player.Position, World.Goal.Position) / 2000, 0, 1);
         _monsterSound.Volume = monsterBreathVolume;
 
-        if (_food != null && _worm.HeldFood == null)
+        if (_nearestFood != null && World.Player.HeldFood == null)
         {
-            var coinVolume = Math.Clamp(1 - Vector2.Distance(_worm.Position, _food.Position) / 2000, 0, 1) * 0.1f;
+            var coinVolume = Math.Clamp(1 - Vector2.Distance(World.Player.Position, _nearestFood.Position) / 2000, 0, 1) * 0.1f;
             _coinSound.Volume = coinVolume;
         }
         else
@@ -121,7 +106,7 @@ public class LdSession : ISession
 
         painter.BeginSpriteBatch(canvasToScreen);
 
-        foreach (var entity in _world.Entities)
+        foreach (var entity in World.Entities)
         {
             entity.Draw(painter);
         }
@@ -135,17 +120,17 @@ public class LdSession : ISession
 
         painter.BeginSpriteBatch(_camera.CanvasToScreen);
 
-        var target = _goal.Position;
-        if (_food != null && _worm.HeldFood == null)
+        var target = World.Goal.Position;
+        if (_nearestFood != null && World.Player.HeldFood == null)
         {
-            target = _food.Position;
+            target = _nearestFood.Position;
         }
 
         if (!_camera.ViewBounds.Contains(target))
         {
-            var compassDirection = (target - _worm.Position).Normalized();
+            var compassDirection = (target - World.Player.Position).Normalized();
 
-            var arrowBase = _worm.Position + compassDirection * 300f;
+            var arrowBase = World.Player.Position + compassDirection * 300f;
             arrowBase = arrowBase.ConstrainedTo(_camera.ViewBounds.Inflated(0, -200));
             var arrowHead = arrowBase + compassDirection * 200f;
 
@@ -162,26 +147,17 @@ public class LdSession : ISession
         painter.EndSpriteBatch();
     }
 
-    private void SpawnFood()
-    {
-        _food = new Food();
-        _food.Position = _goal.Position +
-                         Vector2Extensions.Polar(1920 * 2f, Client.Random.Clean.NextFloat() * MathF.Tau);
-
-        _pendingEntities.Add(_food);
-    }
-
     private void HandleCamera(Painter? debugPainter = null)
     {
-        var player = _world.Entities.Find(a => a is Worm);
+        var player = World.Entities.Find(a => a is Worm);
 
-        var focalEntities = _world.Entities.Where(a => a is IFocalPoint).ToList();
+        var focalEntities = World.Entities.Where(a => a is IFocalPoint).ToList();
 
         var entitiesInFocus = new List<Entity>();
 
         foreach (var entity in focalEntities)
         {
-            // if (Vector2.Distance(_worm.Position, entity.Position) < 2000)
+            // if (Vector2.Distance(_world.Worm.Position, entity.Position) < 2000)
             {
                 entitiesInFocus.Add(entity);
             }

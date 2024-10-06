@@ -12,12 +12,29 @@ namespace LD56.CartridgeManagement;
 public class LdCartridge(IRuntime runtime) : BasicGameCartridge(runtime)
 {
     private ISession? _session;
+    private EditorSession? _editorSession;
+    private LdSession? _gameSession;
 
     public override CartridgeConfig CartridgeConfig { get; } = new(new Point(1920, 1080), SamplerState.LinearWrap);
 
     public override void OnCartridgeStarted()
     {
-        _session = new LdSession((Runtime.Window as RealWindow)!, Runtime.FileSystem);
+        _editorSession = new EditorSession((Runtime.Window as RealWindow)!, Runtime.FileSystem);
+        _gameSession = new LdSession((Runtime.Window as RealWindow)!, Runtime.FileSystem);
+
+        _editorSession.RequestPlay += () =>
+        {
+            _session = _gameSession;
+            _gameSession.World.LoadLevel(_editorSession.CurrentLevel);
+        };
+
+        _gameSession.RequestEditor += () =>
+        {
+            _session = _editorSession;
+        };
+        
+        
+        _session = _editorSession;
     }
 
     public override void UpdateInput(ConsumableInput input, HitTestStack hitTestStack)

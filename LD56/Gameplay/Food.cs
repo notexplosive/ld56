@@ -64,6 +64,11 @@ public class Food : Entity, IFocalPoint
         }
     }
 
+    public override bool EditorHitTest(Vector2 mousePosition)
+    {
+        return (mousePosition - Position).Length() < 100;
+    }
+
     public void Eat()
     {
         IsEaten = true;

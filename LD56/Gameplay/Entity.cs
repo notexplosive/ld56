@@ -21,4 +21,6 @@ public abstract class Entity : IDrawHook, IUpdateHook
     {
         FlaggedForDestroy = true;
     }
+
+    public abstract bool EditorHitTest(Vector2 mousePosition);
 }

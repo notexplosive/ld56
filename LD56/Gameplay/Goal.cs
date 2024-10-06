@@ -102,6 +102,12 @@ public class Goal : Entity, IFocalPoint
 
         _pendingArms = 0;
     }
+
+    public override bool EditorHitTest(Vector2 mousePosition)
+    {
+        // fails always
+        return false;
+    }
 }
 
 public class Arm
