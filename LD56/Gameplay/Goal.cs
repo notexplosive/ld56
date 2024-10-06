@@ -15,7 +15,18 @@ public class Goal : Entity, IFocalPoint
     public Player? Player { get; private set; }
     private int _pendingArms;
     private float _spawnTimer;
+    private int _auraLevel;
     public float ConsumeTimer { get; private set; }
+    public float AuraRadius => (_auraLevel + 1) * 200 + MutantSineFunction() * 15;
+
+    private float MutantSineFunction()
+    {
+        var function = (float x) => MathF.Sin(x * MathF.PI * 2f);
+        var function2 = (float x) => function(function(x));
+        var function3 = (float x) => function2(function2(x));
+
+        return function3(Client.TotalElapsedTime / 10);
+    }
 
     public Goal(World world)
     {
@@ -26,6 +37,11 @@ public class Goal : Entity, IFocalPoint
             var root = new Vector2(MathF.Sin(f * float.Pi * 2f), MathF.Cos(f * float.Pi * 2f)) * 15;
             _arms.Add(new Arm(root, 12));
         }
+    }
+
+    public void IncreaseAuraLevel()
+    {
+        _auraLevel++;
     }
 
     public void CreatePlayer()
@@ -68,6 +84,8 @@ public class Goal : Entity, IFocalPoint
                     });
             }
         }
+        
+        Constants.DrawCircle(painter, Position, AuraRadius, Color.White.WithMultipliedOpacity(0.15f));
     }
 
     public override void Update(float dt)

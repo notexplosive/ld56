@@ -18,6 +18,7 @@ public class LdSession : ISession
     private readonly List<BackgroundDust> _dustLayers = new();
     private readonly SoundEffectInstance _goalSound;
     private readonly SoundEffectInstance _enemySound;
+    private readonly SoundEffectInstance _enemySound2;
 
     private int _buttonInput;
     private bool _leftIsDown;
@@ -46,6 +47,11 @@ public class LdSession : ISession
         _enemySound.Volume = 0f;
         _enemySound.IsLooped = true;
         _enemySound.Play();
+        
+        _enemySound2 = LdResourceAssets.Instance.SoundInstances["spider_move"];
+        _enemySound2.Volume = 0f;
+        _enemySound2.IsLooped = true;
+        _enemySound2.Play();
     }
 
     public World World { get; } = new();
@@ -83,6 +89,7 @@ public class LdSession : ISession
         _coinSound.Stop();
         _goalSound.Stop();
         _enemySound.Stop();
+        _enemySound2.Stop();
     }
 
     public void PlayAllSounds()
@@ -90,6 +97,7 @@ public class LdSession : ISession
         _coinSound.Play();
         _goalSound.Play();
         _enemySound.Play();
+        _enemySound2.Play();
     }
 
     public void Update(float dt)
@@ -148,10 +156,12 @@ public class LdSession : ISession
         if (IsAnyEnemyAlert())
         {
             _enemySound.Volume = 0.5f;
+            _enemySound2.Volume = Math.Clamp(World.Entities.Where(a=>a is Enemy).Cast<Enemy>().Sum(a=>a.Velocity.Length() / a.MaxSpeed), 0, 1);
         }
         else
         {
             _enemySound.Volume = 0f;
+            _enemySound2.Volume = 0f;
         }
     }
 

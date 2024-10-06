@@ -8,19 +8,21 @@ namespace LD56.Gameplay;
 
 public class Enemy : Entity, IFocalPoint
 {
-    private readonly float _maxSpeed = 1700f;
     private readonly float _speed = 40f;
     private readonly World _world;
     private LineDrawSettings _lineStyle;
     private float _motionTime;
-    private Player? _target;
-    private Vector2 _velocity;
+    private float _sleepTimer;
     private float _stopCooldown;
+    private Player? _target;
 
     public Enemy(World world)
     {
         _world = world;
     }
+
+    public float MaxSpeed { get; } = 1700f;
+    public Vector2 Velocity { get; private set; }
 
     public bool IsAlert => _target != null;
 
@@ -53,7 +55,7 @@ public class Enemy : Entity, IFocalPoint
     {
         return Mirrored(new Vector2(-75 + motion * 10, 50 - motion * (-20 - 50)), mirrorX);
     }
-    
+
     private static Vector2 Foot2(float motion, bool mirrorX = false)
     {
         return Mirrored(new Vector2(-120 - motion * 10, 40 - motion * (20 + 50)), mirrorX);
@@ -86,9 +88,9 @@ public class Enemy : Entity, IFocalPoint
         else
         {
             _stopCooldown = 1 + Client.Random.Clean.NextFloat() * 3;
-            _velocity /= 2f;
+            Velocity /= 2f;
         }
-        
+
         foreach (var entity in _world.Entities)
         {
             if (entity is Obstacle obstacle)
@@ -98,7 +100,7 @@ public class Enemy : Entity, IFocalPoint
                 {
                     var displacement = Position - obstacle.Position;
                     Position = obstacle.Position + displacement.Normalized() * radius;
-                    _velocity = Vector2Extensions.Polar(_velocity.Length() / 2f, displacement.GetAngleFromUnitX());
+                    Velocity = Vector2Extensions.Polar(Velocity.Length() / 2f, displacement.GetAngleFromUnitX());
                 }
             }
         }
@@ -109,7 +111,7 @@ public class Enemy : Entity, IFocalPoint
             {
                 if (entity is Player player)
                 {
-                    if (TestDistance(entity.Position) && TestLineOfSightTo(entity.Position))
+                    if (CanAggro(entity))
                     {
                         _target = player;
                     }
@@ -119,30 +121,47 @@ public class Enemy : Entity, IFocalPoint
         else
         {
             var displacement = _target.Position - Position;
-            _velocity += displacement.Normalized() * _speed * dt * 40f;
+            Velocity += displacement.Normalized() * _speed * dt * 40f;
 
             if (_target.IsHurtAt(Position))
             {
                 _target.TakeDamage();
-                
-                _velocity /= 4f;
+
+                Velocity /= 4f;
             }
 
-            if (_velocity.Length() > _maxSpeed)
+            if (Velocity.Length() > MaxSpeed)
             {
-                _velocity = _velocity.Normalized() * _maxSpeed;
+                Velocity = Velocity.Normalized() * MaxSpeed;
             }
         }
 
-        if (_target != null && (!TestDistance(_target.Position) || !TestLineOfSightTo(_target.Position)))
+        if (_target != null && !CanAggro(_target))
         {
             _target = null;
-            _velocity = Vector2.Zero;
+            Velocity = Vector2.Zero;
         }
 
-        Position += _velocity * dt;
+        Position += Velocity * dt;
 
-        _motionTime += _velocity.Length() * dt / 50f;
+        _motionTime += Velocity.Length() * dt / 50f;
+
+        if (IsInAura(Position))
+        {
+            Velocity = -Velocity;
+            _target = null;
+            _sleepTimer = 0.25f;
+        }
+    }
+
+    private bool IsInAura(Vector2 position)
+    {
+        return (position - _world.Goal.Position).Length() < _world.Goal.AuraRadius;
+    }
+
+    private bool CanAggro(Entity entity)
+    {
+        return TestDistance(entity.Position) && TestLineOfSightTo(entity.Position) && !IsInAura(entity.Position);
     }
 
     private bool TestDistance(Vector2 entityPosition)
@@ -165,6 +184,11 @@ public class Enemy : Entity, IFocalPoint
                 {
                     return false;
                 }
+            }
+
+            if (Vector2.Distance(probe, _world.Goal.Position) < _world.Goal.AuraRadius)
+            {
+                return false;
             }
         }
 

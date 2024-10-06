@@ -99,6 +99,7 @@ public class World
     public void LoadNextLevel()
     {
         _levelIndex++;
+        Goal.IncreaseAuraLevel();
         LoadCurrentLevel(false);
     }
 

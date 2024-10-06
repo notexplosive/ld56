@@ -11,13 +11,14 @@ public static class Constants
 {
     public static ImageAsset CircleImage => LdResourceAssets.Instance.Sheets["circle"].GetImageAtFrame(0);
 
-    public static void DrawCircle(Painter painter, Vector2 position, float radius)
+    public static void DrawCircle(Painter painter, Vector2 position, float radius, Color? color = null)
     {
         Constants.CircleImage.DrawAsRectangle(painter,
             new RectangleF(position, new Vector2(radius * 2)),
             new DrawSettings
             {
-                Origin = DrawOrigin.Center
+                Origin = DrawOrigin.Center,
+                Color = color ?? Color.White
             });
     }
 }
