@@ -1,17 +1,21 @@
 ﻿using System.Collections.Generic;
+using ExplogineMonoGame;
 using Microsoft.Xna.Framework;
+using Newtonsoft.Json;
 
 namespace LD56.Gameplay;
 
 public class World
 {
+    private int _levelIndex;
+    public bool HasRequestedReload { get; set; }
+
     public Goal Goal { get; private set; }
-    public Player Player { get; private set; }
+    public Player? Player => Goal.Player;
 
     public World()
     {
-        Player = new Player(this);
-        Goal = new Goal(Player);
+        Goal = new Goal(this);
     }
 
     public List<Entity> Entities { get; } = new();
@@ -27,15 +31,10 @@ public class World
 
     private void CreatePlayerAndGoal(Vector2 spawnPosition)
     {
-        Player = new Player(this);
-        Player.Position = spawnPosition;
-        Player.MoveAllTailSegmentsToHead();
-        
-        Goal = new Goal(Player);
+        Goal = new Goal(this);
         Goal.Position = spawnPosition;
         
         Entities.Add(Goal);
-        Entities.Add(Player);
     }
 
     private Entity CreateWall(Vector2 wallPosition, float wallRadius)
@@ -45,6 +44,14 @@ public class World
         return obstacle;
     }
 
+    public void LoadCurrentLevel()
+    {
+        var level = JsonConvert.DeserializeObject<Level>(
+                        Client.Debug.RepoFileSystem.ReadFile($"level{_levelIndex}.json")) ??
+                    new Level();
+        LoadLevelSeamless(level);
+    }
+    
     public void LoadLevelSeamless(Level level)
     {
         Entities.RemoveAll(a => a is not Gameplay.Player && a is not LD56.Gameplay.Goal);
@@ -73,5 +80,21 @@ public class World
             enemy.Position = enemySpawn.ToVector2() + offset;
             Entities.Add(enemy);
         }
+    }
+
+    public void PlayerDied()
+    {
+        Goal.KillPlayer();
+    }
+
+    public void LoadNextLevel()
+    {
+        _levelIndex++;
+        LoadCurrentLevel();
+    }
+
+    public void RequestReload()
+    {
+        HasRequestedReload = true;
     }
 }

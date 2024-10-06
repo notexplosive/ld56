@@ -67,16 +67,22 @@ public class Player : Entity
     private void DrawArrowHead(Painter painter, Vector2 currentSegment, Vector2 previousSegment,
         float segmentSize, float flapPercent)
     {
+        var color = Color.White;
+        if (_recoveryCooldown > 0)
+        {
+            color = Color.Lerp(Color.Red, Color.White, Math.Abs(MathF.Sin(Client.TotalElapsedTime * 20f) / 2));
+        }
+        
         var offset = currentSegment - previousSegment;
         var leftAngle = offset.GetAngleFromUnitX() + MathF.PI / 4f + MathF.PI / 8 * flapPercent;
         var rightAngle = offset.GetAngleFromUnitX() - MathF.PI / 4f - MathF.PI / 8 * flapPercent;
         var leftArm = Vector2Extensions.Polar(segmentSize, leftAngle + BankPercent / 2f);
         var rightArm = Vector2Extensions.Polar(segmentSize, rightAngle + BankPercent / 2f);
 
-        painter.DrawLine(currentSegment, currentSegment + leftArm, new LineDrawSettings(){Thickness =  2});
-        painter.DrawLine(currentSegment, currentSegment + rightArm, new LineDrawSettings(){Thickness =  2});
-        painter.DrawLine(previousSegment, currentSegment + leftArm, new LineDrawSettings(){Thickness =  3});
-        painter.DrawLine(previousSegment, currentSegment + rightArm, new LineDrawSettings(){Thickness =  3});
+        painter.DrawLine(currentSegment, currentSegment + leftArm, new LineDrawSettings(){Color = color,Thickness =  2});
+        painter.DrawLine(currentSegment, currentSegment + rightArm, new LineDrawSettings(){Color = color,Thickness =  2});
+        painter.DrawLine(previousSegment, currentSegment + leftArm, new LineDrawSettings(){Color = color,Thickness =  3});
+        painter.DrawLine(previousSegment, currentSegment + rightArm, new LineDrawSettings(){Color = color,Thickness =  3});
     }
 
     public override void Draw(Painter painter)
@@ -245,7 +251,12 @@ public class Player : Entity
         }
         else
         {
-            Client.Debug.Log("Die");
+            _world.PlayerDied();
         }
+    }
+
+    public void Boost()
+    {
+        _forwardSpeed = _maximumSpeed;
     }
 }

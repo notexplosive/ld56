@@ -8,20 +8,30 @@ namespace LD56.Gameplay;
 
 public class Goal : Entity, IFocalPoint
 {
+    private readonly World _world;
     private readonly List<Arm> _arms = new();
-    private readonly Player _player;
+    public Player? Player { get; private set; }
     private int _pendingArms;
+    private float _spawnTimer;
 
-    public Goal(Player player)
+    public Goal(World world)
     {
-        _player = player;
-
+        _world = world;
         for (var i = 0; i < 10; i++)
         {
             var f = i / 10f;
             var root = new Vector2(MathF.Sin(f * float.Pi * 2f), MathF.Cos(f * float.Pi * 2f)) * 15;
             _arms.Add(new Arm(root, 12));
         }
+    }
+
+    public void CreatePlayer()
+    {
+        Player = new Player(_world);
+        Player.Position = Position;
+        Player.MoveAllTailSegmentsToHead();
+        Player.Boost();
+        _world.Entities.Add(Player);
     }
 
     public float FocalWeight()
@@ -60,15 +70,15 @@ public class Goal : Entity, IFocalPoint
         {
             var arm = _arms[index];
             var updateSpeed = 1f;
-            if (_player.HeldFood != null && Vector2.Distance(_player.Position, Position) < 600 && index % 2 == 0)
+            if (Player?.HeldFood != null && Vector2.Distance(Player.Position, Position) < 600 && index % 2 == 0)
             {
-                arm.Destination = _player.HeldFood.Position - Position;
+                arm.Destination = Player.HeldFood.Position - Position;
                 updateSpeed = 5;
 
-                if (Vector2.Distance(_player.HeldFood.Position, arm.Chain.Head.Position + Position) < 25)
+                if (Vector2.Distance(Player.HeldFood.Position, arm.Chain.Head.Position + Position) < 25)
                 {
-                    _player.HeldFood.Destroy();
-                    _player.DeleteFood();
+                    Player.HeldFood.Destroy();
+                    Player.DeleteFood();
                     _pendingArms++;
                     WasFed?.Invoke();
                 }
@@ -107,6 +117,49 @@ public class Goal : Entity, IFocalPoint
     {
         // fails always
         return false;
+    }
+
+    public void SpawningInput(bool leftIsDown, bool rightIsDown, float dt)
+    {
+        if (Player == null)
+        {
+            for (var index = 0; index < _arms.Count; index++)
+            {
+                if ((index % 2 == 0 && leftIsDown) || (index % 2 == 1 && rightIsDown))
+                {
+                    var arm = _arms[index];
+                    arm.Destination = new Vector2((Client.Random.Dirty.NextFloat() - 0.5f) * 1600, -800);
+                }
+            }
+
+            if (leftIsDown && rightIsDown)
+            {
+                _spawnTimer += dt;
+                if (_spawnTimer > 1)
+                {
+                    CreatePlayer();
+                }
+            }
+            else
+            {
+                _spawnTimer -= dt;
+                if (_spawnTimer < 0)
+                {
+                    _spawnTimer = 0;
+                }
+            }
+        }
+    }
+
+    public void KillPlayer()
+    {
+        if (Player != null)
+        {
+            Player.Destroy();
+            Player = null;
+
+            _world.RequestReload();
+        }
     }
 }
 

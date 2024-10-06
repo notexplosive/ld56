@@ -19,8 +19,9 @@ public class LdSession : ISession
     private readonly SoundEffectInstance _monsterSound;
 
     private int _buttonInput;
+    private bool _leftIsDown;
     private Food? _nearestFood;
-    private int _levelIndex;
+    private bool _rightIsDown;
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
@@ -29,8 +30,6 @@ public class LdSession : ISession
         _dustLayers.Add(new BackgroundDust(_camera, 0.9f));
         _dustLayers.Add(new BackgroundDust(_camera, 4f));
         _dustLayers.Add(new BackgroundDust(_camera, 8f));
-
-        World.Entities.Add(World.Player);
 
         _coinSound = LdResourceAssets.Instance.SoundInstances["coin_near"];
         _coinSound.Volume = 0f;
@@ -51,10 +50,16 @@ public class LdSession : ISession
 
     public void UpdateInput(ConsumableInput input, HitTestStack hitTestStack)
     {
-        var leftInput = input.Keyboard.GetButton(Keys.Left).IsDown || input.Keyboard.GetButton(Keys.A).IsDown ? -1 : 0;
-        var rightInput = input.Keyboard.GetButton(Keys.Right).IsDown || input.Keyboard.GetButton(Keys.D).IsDown ? 1 : 0;
+        _leftIsDown = input.Keyboard.GetButton(Keys.Left).IsDown || input.Keyboard.GetButton(Keys.A).IsDown;
+        var leftInput = _leftIsDown ? -1 : 0;
+        _rightIsDown = input.Keyboard.GetButton(Keys.Right).IsDown || input.Keyboard.GetButton(Keys.D).IsDown;
+        var rightInput = _rightIsDown ? 1 : 0;
+
         _buttonInput = leftInput + rightInput;
-        World.Player.DirectionalInput = _buttonInput;
+        if (World.Player != null)
+        {
+            World.Player.DirectionalInput = _buttonInput;
+        }
 
         if (input.Keyboard.GetButton(Keys.Space).WasPressed)
         {
@@ -75,25 +80,49 @@ public class LdSession : ISession
             entity.Update(dt);
         }
 
-        HandleFood();
+        if (World.Player != null)
+        {
+            HandleFood(World.Player);
+        }
+        
+        if (World.Player == null)
+        {
+            World.Goal.SpawningInput(_leftIsDown, _rightIsDown, dt);
+        }
 
         HandleCamera();
 
         World.Entities.RemoveAll(e => e.FlaggedForDestroy);
 
-        var monsterBreathVolume =
-            Math.Clamp(1 - Vector2.Distance(World.Player.Position, World.Goal.Position) / 2000, 0, 1);
-        _monsterSound.Volume = monsterBreathVolume;
+        var monsterBreathVolume = 1f;
 
-        if (_nearestFood != null && World.Player.HeldFood == null)
+        if (World.Player != null)
         {
-            var coinVolume =
-                Math.Clamp(1 - Vector2.Distance(World.Player.Position, _nearestFood.Position) / 2000, 0, 1) * 0.1f;
-            _coinSound.Volume = coinVolume;
+            monsterBreathVolume =
+                Math.Clamp(1 - Vector2.Distance(World.Player.Position, World.Goal.Position) / 2000, 0, 1);
+
+            if (_nearestFood != null && World.Player.HeldFood == null)
+            {
+                var coinVolume =
+                    Math.Clamp(1 - Vector2.Distance(World.Player.Position, _nearestFood.Position) / 2000, 0, 1) * 0.1f;
+                _coinSound.Volume = coinVolume;
+            }
+            else
+            {
+                _coinSound.Volume = 0f;
+            }
         }
         else
         {
             _coinSound.Volume = 0f;
+        }
+
+        _monsterSound.Volume = monsterBreathVolume;
+
+        if (World.HasRequestedReload)
+        {
+            World.LoadCurrentLevel();
+            World.HasRequestedReload = false;
         }
     }
 
@@ -126,28 +155,50 @@ public class LdSession : ISession
 
         painter.BeginSpriteBatch(_camera.CanvasToScreen);
 
-        var target = World.Goal.Position;
-        if (_nearestFood != null && World.Player.HeldFood == null)
+        if (World.Player != null)
         {
-            target = _nearestFood.Position;
+            var target = World.Goal.Position;
+            if (_nearestFood != null && World.Player.HeldFood == null)
+            {
+                target = _nearestFood.Position;
+            }
+
+            if (!_camera.ViewBounds.Contains(target))
+            {
+                var compassDirection = (target - World.Player.Position).Normalized();
+
+                var arrowBase = World.Player.Position + compassDirection * 300f;
+                arrowBase = arrowBase.ConstrainedTo(_camera.ViewBounds.Inflated(0, -200));
+                var arrowHead = arrowBase + compassDirection * 200f;
+
+                painter.DrawLine(arrowBase, arrowHead,
+                    new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+                painter.DrawLine(arrowHead,
+                    arrowHead + Vector2Extensions.Polar(20, compassDirection.GetAngleFromUnitX() + MathF.PI * 5 / 6f),
+                    new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+                painter.DrawLine(arrowHead,
+                    arrowHead + Vector2Extensions.Polar(20, compassDirection.GetAngleFromUnitX() - MathF.PI * 5 / 6f),
+                    new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+            }
         }
 
-        if (!_camera.ViewBounds.Contains(target))
+        painter.EndSpriteBatch();
+
+        painter.BeginSpriteBatch();
+
+        if (World.Player == null)
         {
-            var compassDirection = (target - World.Player.Position).Normalized();
+            painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 100), "Hold Both Buttons",
+                _camera.OutputResolution.ToRectangleF().Inflated(-300f, -100), Alignment.TopCenter, new DrawSettings());
 
-            var arrowBase = World.Player.Position + compassDirection * 300f;
-            arrowBase = arrowBase.ConstrainedTo(_camera.ViewBounds.Inflated(0, -200));
-            var arrowHead = arrowBase + compassDirection * 200f;
-
-            painter.DrawLine(arrowBase, arrowHead,
-                new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
-            painter.DrawLine(arrowHead,
-                arrowHead + Vector2Extensions.Polar(20, compassDirection.GetAngleFromUnitX() + MathF.PI * 5 / 6f),
-                new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
-            painter.DrawLine(arrowHead,
-                arrowHead + Vector2Extensions.Polar(20, compassDirection.GetAngleFromUnitX() - MathF.PI * 5 / 6f),
-                new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+            var leftNoise = _leftIsDown ? Client.Random.Dirty.NextNormalVector2() * 15 : new Vector2();
+            var rightNoise = _rightIsDown ? Client.Random.Dirty.NextNormalVector2() * 15 : new Vector2();
+            
+            painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 250), "A",
+                _camera.OutputResolution.ToRectangleF().Inflated(-300f, 0).Moved(leftNoise), Alignment.CenterLeft, new DrawSettings());
+            
+            painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 250), "D",
+                _camera.OutputResolution.ToRectangleF().Inflated(-300f, 0).Moved(rightNoise), Alignment.CenterRight, new DrawSettings());
         }
 
         painter.EndSpriteBatch();
@@ -155,7 +206,7 @@ public class LdSession : ISession
 
     public event Action? RequestEditor;
 
-    private void HandleFood()
+    private void HandleFood(Player player)
     {
         if (_nearestFood?.FlaggedForDestroy == true)
         {
@@ -164,16 +215,13 @@ public class LdSession : ISession
 
         var food = World.Entities.Where(a => a is Food food && food.IsEaten == false).Cast<Food>().ToList();
         food.Sort((a, b) =>
-            (a.Position - World.Player.Position).Length().CompareTo((b.Position - World.Player.Position).Length()));
+            (a.Position - player.Position).Length().CompareTo((b.Position - player.Position).Length()));
 
         _nearestFood = food.FirstOrDefault();
 
-        if (_nearestFood == null && World.Player.HeldFood == null)
+        if (_nearestFood == null && player.HeldFood == null)
         {
-            _levelIndex++;
-            var level = JsonConvert.DeserializeObject<Level>(Client.Debug.RepoFileSystem.ReadFile($"level{_levelIndex}.json")) ??
-                new Level();
-            World.LoadLevelSeamless(level);
+            World.LoadNextLevel();
         }
     }
 
@@ -194,7 +242,7 @@ public class LdSession : ISession
         }
 
         var initialTotalPosition = Vector2.Zero;
-        var playerPosition = player?.Position ?? Vector2.Zero;
+        var playerPosition = player?.Position ?? World.Goal.Position;
         foreach (var entity in entitiesInFocus)
         {
             initialTotalPosition += entity.Position;
