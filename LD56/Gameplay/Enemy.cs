@@ -9,12 +9,13 @@ namespace LD56.Gameplay;
 public class Enemy : Entity, IFocalPoint
 {
     private readonly float _maxSpeed = 1700f;
-    private readonly float _speed = 50f;
+    private readonly float _speed = 40f;
     private readonly World _world;
     private LineDrawSettings _lineStyle;
     private float _motionTime;
     private Player? _target;
     private Vector2 _velocity;
+    private float _stopCooldown;
 
     public Enemy(World world)
     {
@@ -25,7 +26,7 @@ public class Enemy : Entity, IFocalPoint
 
     public float FocalWeight()
     {
-        return 3f;
+        return 1f;
     }
 
     public override void Draw(Painter painter)
@@ -43,11 +44,6 @@ public class Enemy : Entity, IFocalPoint
         DrawLeg(painter, Knee2(-motion, true), Foot2(-motion, true));
     }
 
-    private static Vector2 Foot2(float motion, bool mirrorX = false)
-    {
-        return Mirrored(new Vector2(-120 - motion * 10, 40 - motion * 20), mirrorX);
-    }
-
     private static Vector2 Knee2(float motion, bool mirrorX = false)
     {
         return Mirrored(new Vector2(-75 + motion, -80 - motion * 20), mirrorX);
@@ -55,7 +51,12 @@ public class Enemy : Entity, IFocalPoint
 
     private static Vector2 Foot1(float motion, bool mirrorX = false)
     {
-        return Mirrored(new Vector2(-75 + motion * 10, 50 - motion * 20), mirrorX);
+        return Mirrored(new Vector2(-75 + motion * 10, 50 - motion * (-20 - 50)), mirrorX);
+    }
+    
+    private static Vector2 Foot2(float motion, bool mirrorX = false)
+    {
+        return Mirrored(new Vector2(-120 - motion * 10, 40 - motion * (20 + 50)), mirrorX);
     }
 
     private static Vector2 Knee1(float motion, bool mirrorX = false)
@@ -78,6 +79,16 @@ public class Enemy : Entity, IFocalPoint
 
     public override void Update(float dt)
     {
+        if (_stopCooldown > 0)
+        {
+            _stopCooldown -= dt;
+        }
+        else
+        {
+            _stopCooldown = 1 + Client.Random.Clean.NextFloat() * 3;
+            _velocity /= 2f;
+        }
+        
         foreach (var entity in _world.Entities)
         {
             if (entity is Obstacle obstacle)
@@ -113,9 +124,8 @@ public class Enemy : Entity, IFocalPoint
             if (_target.IsHurtAt(Position))
             {
                 _target.TakeDamage();
-
-                // speed boost after chomping player (should help player get away
-                _velocity += displacement.Normalized() * _speed * dt * 80f;
+                
+                _velocity /= 4f;
             }
 
             if (_velocity.Length() > _maxSpeed)
@@ -132,12 +142,12 @@ public class Enemy : Entity, IFocalPoint
 
         Position += _velocity * dt;
 
-        _motionTime += _velocity.Length() * dt / 100f;
+        _motionTime += _velocity.Length() * dt / 50f;
     }
 
     private bool TestDistance(Vector2 entityPosition)
     {
-        return (Position - entityPosition).Length() < 1920;
+        return (Position - entityPosition).Length() < 1920 * 2f;
     }
 
     private bool TestLineOfSightTo(Vector2 targetPosition)

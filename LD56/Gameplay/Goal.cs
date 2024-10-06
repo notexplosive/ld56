@@ -30,6 +30,7 @@ public class Goal : Entity, IFocalPoint
 
     public void CreatePlayer()
     {
+        LdResourceAssets.Instance.PlaySound("player_spawn", new SoundEffectSettings());
         Player = new Player(_world);
         Player.Position = Position;
         Player.MoveAllTailSegmentsToHead();

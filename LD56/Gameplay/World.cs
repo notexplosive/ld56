@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using ExplogineCore.Data;
 using ExplogineMonoGame;
+using LD56.CartridgeManagement;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 
@@ -90,6 +92,7 @@ public class World
 
     public void PlayerDied()
     {
+        LdResourceAssets.Instance.PlaySound("player_die", new SoundEffectSettings());
         Goal.KillPlayer();
     }
 

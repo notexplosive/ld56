@@ -1,0 +1,9 @@
+{
+  "goalSpawn": {
+    "x": 0.0,
+    "y": 0.0
+  },
+  "obstacles": [],
+  "coins": [],
+  "enemies": []
+}
