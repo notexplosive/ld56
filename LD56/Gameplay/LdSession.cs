@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
+using ExplogineMonoGame.Debugging;
 using LD56.CartridgeManagement;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
@@ -24,6 +25,7 @@ public class LdSession : ISession
     private bool _leftIsDown;
     private Food? _nearestFood;
     private bool _rightIsDown;
+    private bool _gameIsOver;
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
@@ -62,6 +64,11 @@ public class LdSession : ISession
 
     public void UpdateInput(ConsumableInput input, HitTestStack hitTestStack)
     {
+        if (input.Keyboard.GetButton(Keys.P).WasPressed)
+        {
+            World.SkipLevel();
+        }
+        
         _leftIsDown = input.Keyboard.GetButton(Keys.Left).IsDown || input.Keyboard.GetButton(Keys.A).IsDown;
         var leftInput = _leftIsDown ? -1 : 0;
         _rightIsDown = input.Keyboard.GetButton(Keys.Right).IsDown || input.Keyboard.GetButton(Keys.D).IsDown;
@@ -107,6 +114,11 @@ public class LdSession : ISession
             entity.Update(dt);
         }
 
+        if (_gameIsOver)
+        {
+            World.Goal.IncreaseAuraLevel();
+        }
+
         if (World.Player != null)
         {
             HandleFood(World.Player);
@@ -121,12 +133,12 @@ public class LdSession : ISession
 
         World.Entities.RemoveAll(e => e.FlaggedForDestroy);
 
-        var monsterBreathVolume = 1f;
+        var monsterBreathVolume = 0.5f;
 
         if (World.Player != null)
         {
             monsterBreathVolume =
-                Math.Clamp(1 - Vector2.Distance(World.Player.Position, World.Goal.Position) / 2000, 0, 1);
+                Math.Clamp(1 - Vector2.Distance(World.Player.Position, World.Goal.Position) / 2000, 0, 0.5f);
 
             if (_nearestFood != null && World.Player.HeldFood == null)
             {
@@ -155,8 +167,8 @@ public class LdSession : ISession
 
         if (IsAnyEnemyAlert())
         {
-            _enemySound.Volume = 0.5f;
-            _enemySound2.Volume = Math.Clamp(World.Entities.Where(a=>a is Enemy).Cast<Enemy>().Sum(a=>a.Velocity.Length() / a.MaxSpeed), 0, 1);
+            _enemySound.Volume = 0.4f;
+            _enemySound2.Volume = Math.Clamp(World.Entities.Where(a=>a is Enemy).Cast<Enemy>().Sum(a=>a.Velocity.Length() / a.MaxSpeed), 0, 0.9f);
         }
         else
         {
@@ -190,6 +202,7 @@ public class LdSession : ISession
             dustLayer.Draw(painter);
             painter.EndSpriteBatch();
         }
+        
 
         painter.BeginSpriteBatch(canvasToScreen);
 
@@ -215,22 +228,27 @@ public class LdSession : ISession
                 target = _nearestFood.Position;
             }
 
-            if (!_camera.ViewBounds.Contains(target))
+            if (!_gameIsOver)
             {
-                var compassDirection = (target - World.Player.Position).Normalized();
+                if (!_camera.ViewBounds.Contains(target))
+                {
+                    var compassDirection = (target - World.Player.Position).Normalized();
 
-                var arrowBase = World.Player.Position + compassDirection * 300f;
-                arrowBase = arrowBase.ConstrainedTo(_camera.ViewBounds.Inflated(0, -200));
-                var arrowHead = arrowBase + compassDirection * 200f;
+                    var arrowBase = World.Player.Position + compassDirection * 300f;
+                    arrowBase = arrowBase.ConstrainedTo(_camera.ViewBounds.Inflated(0, -200));
+                    var arrowHead = arrowBase + compassDirection * 200f;
 
-                painter.DrawLine(arrowBase, arrowHead,
-                    new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
-                painter.DrawLine(arrowHead,
-                    arrowHead + Vector2Extensions.Polar(20, compassDirection.GetAngleFromUnitX() + MathF.PI * 5 / 6f),
-                    new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
-                painter.DrawLine(arrowHead,
-                    arrowHead + Vector2Extensions.Polar(20, compassDirection.GetAngleFromUnitX() - MathF.PI * 5 / 6f),
-                    new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+                    painter.DrawLine(arrowBase, arrowHead,
+                        new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+                    painter.DrawLine(arrowHead,
+                        arrowHead + Vector2Extensions.Polar(20,
+                            compassDirection.GetAngleFromUnitX() + MathF.PI * 5 / 6f),
+                        new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+                    painter.DrawLine(arrowHead,
+                        arrowHead + Vector2Extensions.Polar(20,
+                            compassDirection.GetAngleFromUnitX() - MathF.PI * 5 / 6f),
+                        new LineDrawSettings {Thickness = 5, Color = Color.White.WithMultipliedOpacity(0.5f)});
+                }
             }
         }
 
@@ -254,6 +272,13 @@ public class LdSession : ISession
         }
 
         painter.EndSpriteBatch();
+        
+        painter.BeginSpriteBatch();
+        foreach (var creditsEntity in World.Entities.Where(a => a is Credits).Cast<Credits>())
+        {
+            creditsEntity.DrawUi(painter, _camera.OutputResolution.ToRectangleF());
+        }
+        painter.EndSpriteBatch();
     }
 
     public event Action? RequestEditor;
@@ -265,16 +290,32 @@ public class LdSession : ISession
             _nearestFood = null;
         }
 
-        var food = World.Entities.Where(a => a is Food food && food.IsEaten == false).Cast<Food>().ToList();
-        food.Sort((a, b) =>
-            (a.Position - player.Position).Length().CompareTo((b.Position - player.Position).Length()));
+        var food = CalculateNearestFood(player);
 
         _nearestFood = food.FirstOrDefault();
 
         if (_nearestFood == null && player.HeldFood == null)
         {
-            World.LoadNextLevel();
+            if (!_gameIsOver)
+            {
+                World.LoadNextLevel();
+            }
+
+            if (CalculateNearestFood(player).Count == 0 && !_gameIsOver)
+            {
+                _gameIsOver = true;
+                World.Entities.Add(new Credits());
+                Client.Debug.Log($"Game Over!");
+            }
         }
+    }
+
+    private List<Food> CalculateNearestFood(Player player)
+    {
+        var food = World.Entities.Where(a => a is Food food && food.IsEaten == false).Cast<Food>().ToList();
+        food.Sort((a, b) =>
+            (a.Position - player.Position).Length().CompareTo((b.Position - player.Position).Length()));
+        return food;
     }
 
     private void HandleCamera(Painter? debugPainter = null)

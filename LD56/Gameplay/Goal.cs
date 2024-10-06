@@ -16,11 +16,13 @@ public class Goal : Entity, IFocalPoint
     private int _pendingArms;
     private float _spawnTimer;
     private int _auraLevel;
+    private float _auraLevelFloat;
     public float ConsumeTimer { get; private set; }
-    public float AuraRadius => (_auraLevel + 1) * 200 + MutantSineFunction() * 15;
+    public float AuraRadius => (_auraLevelFloat + 1) * 200 + MutantSineFunction() * 15;
 
     private float MutantSineFunction()
     {
+        // this also happens to be the fucntion that generates the heartbeat sound effect
         var function = (float x) => MathF.Sin(x * MathF.PI * 2f);
         var function2 = (float x) => function(function(x));
         var function3 = (float x) => function2(function2(x));
@@ -90,6 +92,11 @@ public class Goal : Entity, IFocalPoint
 
     public override void Update(float dt)
     {
+        if (_auraLevelFloat < _auraLevel)
+        {
+            _auraLevelFloat += dt * 30;
+        }
+        
         if (ConsumeTimer > 0)
         {
             ConsumeTimer -= dt;

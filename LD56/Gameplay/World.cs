@@ -107,4 +107,11 @@ public class World
     {
         HasRequestedReload = true;
     }
+
+    public void SkipLevel()
+    {
+        _levelIndex++;
+        LoadCurrentLevel(false);
+        Client.Debug.Log($"Skipped to level: {_levelIndex}");
+    }
 }

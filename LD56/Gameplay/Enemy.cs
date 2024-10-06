@@ -12,7 +12,6 @@ public class Enemy : Entity, IFocalPoint
     private readonly World _world;
     private LineDrawSettings _lineStyle;
     private float _motionTime;
-    private float _sleepTimer;
     private float _stopCooldown;
     private Player? _target;
 
@@ -150,7 +149,6 @@ public class Enemy : Entity, IFocalPoint
         {
             Velocity = -Velocity;
             _target = null;
-            _sleepTimer = 0.25f;
         }
     }
 
