@@ -5,6 +5,7 @@ using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
 using LD56.CartridgeManagement;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 
 namespace LD56.Gameplay;
@@ -24,6 +25,8 @@ public class LdSession : ISession
     private int _buttonInput;
     private Food? _food;
     private readonly List<Entity> _pendingEntities = new();
+    private readonly SoundEffectInstance _coinSound;
+    private readonly SoundEffectInstance _monsterSound;
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
@@ -43,7 +46,21 @@ public class LdSession : ISession
         _goal.Position = new Vector2(800, 800);
         _world.Entities.Add(_goal);
 
+        var obstacle = new Obstacle();
+        obstacle.Position = new Vector2(-600, -600);
+        _world.Entities.Add(obstacle);
+        
         SpawnFood();
+
+        _coinSound = LdResourceAssets.Instance.SoundInstances["coin_near"];
+        _coinSound.Volume = 0f;
+        _coinSound.IsLooped = true;
+        LdResourceAssets.Instance.SoundInstances["coin_near"].Play();
+        
+        _monsterSound = LdResourceAssets.Instance.SoundInstances["monster_breath"];
+        _monsterSound.Volume = 0f;
+        _monsterSound.IsLooped = true;
+        LdResourceAssets.Instance.SoundInstances["monster_breath"].Play();
     }
 
     public void OnHotReload()
@@ -59,7 +76,6 @@ public class LdSession : ISession
 
         if (input.Keyboard.GetButton(Keys.Space).WasPressed)
         {
-            _worm.Jet();
         }
     }
 
@@ -75,6 +91,19 @@ public class LdSession : ISession
         _world.Entities.RemoveAll(e => e.FlaggedForDestroy);
         _world.Entities.AddRange(_pendingEntities);
         _pendingEntities.Clear();
+
+        var monsterBreathVolume = Math.Clamp(1 - Vector2.Distance(_worm.Position, _goal.Position) / 2000, 0, 1);
+        _monsterSound.Volume = monsterBreathVolume;
+
+        if (_food != null && _worm.HeldFood == null)
+        {
+            var coinVolume = Math.Clamp(1 - Vector2.Distance(_worm.Position, _food.Position) / 2000, 0, 1) * 0.1f;
+            _coinSound.Volume = coinVolume;
+        }
+        else
+        {
+            _coinSound.Volume = 0f;
+        }
     }
 
     public void Draw(Painter painter)

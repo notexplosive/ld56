@@ -96,13 +96,22 @@ public class Worm : Entity
         var direction = Vector2Extensions.Polar(1f, _facingAngle);
         Position += direction * _forwardSpeed * dt;
 
-        _forwardSpeed -= dt * 100f;
-        _forwardSpeed = Math.Clamp(_forwardSpeed, _minimumSpeed, _maximumSpeed);
 
-        if (DirectionalInput != 0)
+        if (DirectionalInput == 0)
+        {
+            _forwardSpeed += dt * 200f;
+        }
+        else
+        {
+            _forwardSpeed -= dt * 100f;
+        }
+        _forwardSpeed = Math.Clamp(_forwardSpeed, _minimumSpeed, _maximumSpeed);
+        
+        if(DirectionalInput != 0)
         {
             BankPercent += DirectionalInput * dt * _forwardSpeed / 100f;
         }
+
 
         if (HeldFood != null)
         {
@@ -119,6 +128,20 @@ public class Worm : Entity
                 {
                     HeldFood = food;
                     food.Eat();
+                }
+            }
+        }
+        
+        foreach (var entity in _world.Entities)
+        {
+            if (entity is Obstacle obstacle)
+            {
+                var radius = obstacle.Radius;
+                if (Vector2.Distance(Position, obstacle.Position) < radius)
+                {
+                    var displacement = Position - obstacle.Position;
+                    Position = obstacle.Position + displacement.Normalized() * radius;
+                    _facingAngle = displacement.GetAngleFromUnitX();
                 }
             }
         }
@@ -160,8 +183,6 @@ public class Worm : Entity
 
     public void Jet()
     {
-        _forwardSpeed += _maximumSpeed / 8f;
-        _tailFurlPercent = 1f;
     }
 
     public void DeleteFood()
