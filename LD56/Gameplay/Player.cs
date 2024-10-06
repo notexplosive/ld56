@@ -22,6 +22,7 @@ public class Player : Entity
     private float _forwardSpeed;
     public Food? HeldFood { get; private set; }
     private float _tailFurlPercent;
+    private float _recoveryCooldown;
 
     public Player(World world)
     {
@@ -104,6 +105,12 @@ public class Player : Entity
         var direction = Vector2Extensions.Polar(1f, _facingAngle);
         Position += direction * _forwardSpeed * dt;
 
+
+        if (_recoveryCooldown > 0)
+        {
+            _recoveryCooldown -= dt;
+        }
+        
 
         if (DirectionalInput == 0)
         {
@@ -203,5 +210,42 @@ public class Player : Entity
     public void DeleteFood()
     {
         HeldFood = null;
+    }
+
+    public bool IsHurtAt(Vector2 position)
+    {
+        if ((position - Position).Length() < 50)
+        {
+            return true;
+        }
+
+        foreach (var segment in _tailSegments)
+        {
+            if ((position - segment.Position).Length() < 50)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void TakeDamage()
+    {
+        if (_recoveryCooldown > 0)
+        {
+            return;
+        }
+
+        _recoveryCooldown = 1f;
+
+        if (_tailSegments.Count > 1)
+        {
+            _tailSegments.RemoveAt(_tailSegments.Count - 1);
+        }
+        else
+        {
+            Client.Debug.Log("Die");
+        }
     }
 }

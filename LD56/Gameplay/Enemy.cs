@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
 using Microsoft.Xna.Framework;
@@ -95,7 +96,7 @@ public class Enemy : Entity, IFocalPoint
             {
                 if (entity is Player player)
                 {
-                    if (TestLineOfSightTo(entity.Position) && TestDistance(entity.Position))
+                    if (TestDistance(entity.Position) && TestLineOfSightTo(entity.Position))
                     {
                         _target = player;
                     }
@@ -107,13 +108,21 @@ public class Enemy : Entity, IFocalPoint
             var displacement = _target.Position - Position;
             _velocity += displacement.Normalized() * _speed * dt * 40f;
 
+            if (_target.IsHurtAt(Position))
+            {
+                _target.TakeDamage();
+                
+                // speed boost after chomping player (should help player get away
+                _velocity += displacement.Normalized() * _speed * dt * 80f;
+            }
+            
             if (_velocity.Length() > _maxSpeed)
             {
                 _velocity = _velocity.Normalized() * _maxSpeed;
             }
         }
 
-        if (_target != null && (!TestLineOfSightTo(_target.Position) || !TestDistance(_target.Position)))
+        if (_target != null && (!TestDistance(_target.Position) || !TestLineOfSightTo(_target.Position)))
         {
             _target = null;
             _velocity = Vector2.Zero;
@@ -129,8 +138,24 @@ public class Enemy : Entity, IFocalPoint
         return (Position - entityPosition).Length() < 1920;
     }
 
-    private bool TestLineOfSightTo(Vector2 entityPosition)
+    private bool TestLineOfSightTo(Vector2 targetPosition)
     {
+        var obstacles = _world.Entities.Where(a => a is Obstacle).Cast<Obstacle>().ToList();
+
+        for (int i = 5; i < 100; i++)
+        {
+            var probe = Vector2.Lerp(Position, targetPosition, i/100f);
+
+            foreach (var obstacle in obstacles)
+            {
+                var radius = obstacle.Radius;
+                if (Vector2.Distance(probe, obstacle.Position) < radius)
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 
