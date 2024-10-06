@@ -9,12 +9,12 @@ namespace LD56.Gameplay;
 public class Goal : Entity, IFocalPoint
 {
     private readonly List<Arm> _arms = new();
-    private readonly Worm _worm;
+    private readonly Player _player;
     private int _pendingArms;
 
-    public Goal(Worm worm)
+    public Goal(Player player)
     {
-        _worm = worm;
+        _player = player;
 
         for (var i = 0; i < 10; i++)
         {
@@ -60,15 +60,15 @@ public class Goal : Entity, IFocalPoint
         {
             var arm = _arms[index];
             var updateSpeed = 1f;
-            if (_worm.HeldFood != null && Vector2.Distance(_worm.Position, Position) < 600 && index % 2 == 0)
+            if (_player.HeldFood != null && Vector2.Distance(_player.Position, Position) < 600 && index % 2 == 0)
             {
-                arm.Destination = _worm.HeldFood.Position - Position;
+                arm.Destination = _player.HeldFood.Position - Position;
                 updateSpeed = 5;
 
-                if (Vector2.Distance(_worm.HeldFood.Position, arm.Chain.Head.Position + Position) < 25)
+                if (Vector2.Distance(_player.HeldFood.Position, arm.Chain.Head.Position + Position) < 25)
                 {
-                    _worm.HeldFood.Destroy();
-                    _worm.DeleteFood();
+                    _player.HeldFood.Destroy();
+                    _player.DeleteFood();
                     _pendingArms++;
                     WasFed?.Invoke();
                 }

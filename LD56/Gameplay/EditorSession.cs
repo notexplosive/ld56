@@ -26,10 +26,13 @@ public class EditorSession : ISession
         _runtimeFileSystem = runtimeFileSystem;
         _camera = new Camera(runtimeWindow.RenderResolution.ToVector2());
 
-        _tools = new List<EditorTool>();
-        _tools.Add(new PlacePlayerTool());
-        _tools.Add(new PlaceWallTool());
-        _tools.Add(new PlaceFoodTool());
+        _tools = new List<EditorTool>
+        {
+            new PlacePlayerTool(),
+            new PlaceWallTool(),
+            new PlaceFoodTool(),
+            new PlaceEnemyTool()
+        };
 
         LoadCurrentLevel();
     }
@@ -130,6 +133,7 @@ public class EditorSession : ISession
 
         if (input.Keyboard.GetButton(Keys.F5).WasPressed)
         {
+            SaveCurrentLevel();
             RequestPlay?.Invoke();
         }
 
@@ -209,6 +213,14 @@ public class PlaceFoodTool : EditorTool
     }
 }
 
+public class PlaceEnemyTool : EditorTool
+{
+    public override void Use(Vector2 mousePosition, Level level)
+    {
+        level.Enemies.Add(new SerializableVector2(mousePosition));
+    }
+}
+
 [Serializable]
 public class Level
 {
@@ -221,6 +233,9 @@ public class Level
     [JsonProperty("coins")]
     public List<SerializableVector2> Foods { get; set; } = new();
 
+    [JsonProperty("enemies")]
+    public List<SerializableVector2> Enemies { get; set; } = new();
+
     public void DeleteRelatedData(Entity entity)
     {
         if (entity is Obstacle)
@@ -231,6 +246,11 @@ public class Level
         if (entity is Food)
         {
             Foods.RemoveAll(coinPosition => coinPosition.ToVector2() == entity.Position);
+        }
+
+        if (entity is Enemy)
+        {
+            Enemies.RemoveAll(coinPosition => coinPosition.ToVector2() == entity.Position);
         }
     }
 }

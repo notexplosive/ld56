@@ -179,7 +179,7 @@ public class LdSession : ISession
 
     private void HandleCamera(Painter? debugPainter = null)
     {
-        var player = World.Entities.Find(a => a is Worm);
+        var player = World.Entities.Find(a => a is Player);
 
         var focalEntities = World.Entities.Where(a => a is IFocalPoint).ToList();
 

@@ -8,7 +8,7 @@ using Microsoft.Xna.Framework;
 
 namespace LD56.Gameplay;
 
-public class Worm : Entity
+public class Player : Entity
 {
     private readonly float _maximumSpeed;
     private readonly float _maxSegmentSize = 30;
@@ -23,7 +23,7 @@ public class Worm : Entity
     public Food? HeldFood { get; private set; }
     private float _tailFurlPercent;
 
-    public Worm(World world)
+    public Player(World world)
     {
         _world = world;
         _facingAngle = -MathF.PI / 2f;
