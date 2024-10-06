@@ -20,12 +20,12 @@ public class World
     {
         Entities.Clear();
 
-        foreach (var wall in level.Walls)
+        foreach (var wall in level.Obstacles)
         {
             Entities.Add(CreateWall(wall.Position.ToVector2(), wall.Radius));
         }
 
-        foreach (var coin in level.Coins)
+        foreach (var coin in level.Foods)
         {
             var food = new Food();
             food.Position = coin.ToVector2();
@@ -39,6 +39,7 @@ public class World
     {
         Player = new Worm(this);
         Player.Position = spawnPosition;
+        Player.MoveAllTailSegmentsToHead();
         
         Goal = new Goal(Player);
         Goal.Position = spawnPosition;
@@ -52,5 +53,24 @@ public class World
         var obstacle = new Obstacle(wallRadius);
         obstacle.Position = wallPosition;
         return obstacle;
+    }
+
+    public void LoadLevelSeamless(Level level)
+    {
+        Entities.RemoveAll(a => a is Obstacle);
+        Entities.RemoveAll(a => a is Food);
+
+        var offset = Goal.Position - level.GoalSpawnPosition.ToVector2();
+        foreach (var wall in level.Obstacles)
+        {
+            Entities.Add(CreateWall(wall.Position.ToVector2() + offset, wall.Radius));
+        }
+
+        foreach (var coin in level.Foods)
+        {
+            var food = new Food();
+            food.Position = coin.ToVector2() + offset;
+            Entities.Add(food);
+        }
     }
 }

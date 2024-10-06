@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using ExplogineCore.Data;
 using ExplogineMonoGame;
 using ExplogineMonoGame.Data;
@@ -15,12 +14,12 @@ namespace LD56.Gameplay;
 
 public class EditorSession : ISession
 {
-    private readonly ClientFileSystem _runtimeFileSystem;
     private readonly Camera _camera;
+    private readonly ClientFileSystem _runtimeFileSystem;
     private readonly List<EditorTool> _tools;
-    public Level CurrentLevel { get; } = new();
+    private int _levelIndex;
     private int _toolIndex;
-    private World _world = new();
+    private readonly World _world = new();
 
     public EditorSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
@@ -32,10 +31,10 @@ public class EditorSession : ISession
         _tools.Add(new PlaceWallTool());
         _tools.Add(new PlaceFoodTool());
 
-        _toolIndex = 0;
-
-        CurrentLevel = JsonConvert.DeserializeObject<Level>(Client.Debug.RepoFileSystem.ReadFile("level.json"))?? new Level();
+        LoadCurrentLevel();
     }
+
+    public Level CurrentLevel { get; set; } = new();
 
     public EditorTool CurrentTool => _tools[_toolIndex];
 
@@ -103,10 +102,30 @@ public class EditorSession : ISession
             _toolIndex %= _tools.Count;
         }
 
+        if (input.Keyboard.GetButton(Keys.Q).WasPressed)
+        {
+            SaveCurrentLevel();
+            _levelIndex--;
+            if (_levelIndex < 0)
+            {
+                _levelIndex = 0;
+            }
+
+            LoadCurrentLevel();
+        }
+
+        if (input.Keyboard.GetButton(Keys.E).WasPressed)
+        {
+            SaveCurrentLevel();
+
+            _levelIndex++;
+            
+            LoadCurrentLevel();
+        }
+
         if (input.Keyboard.Modifiers.Control && input.Keyboard.GetButton(Keys.S, true).WasPressed)
         {
-            var levelSerialized = JsonConvert.SerializeObject(CurrentLevel, Formatting.Indented);
-            Client.Debug.RepoFileSystem.WriteToFile("level.json",levelSerialized);
+            SaveCurrentLevel();
         }
 
         if (input.Keyboard.GetButton(Keys.F5).WasPressed)
@@ -116,19 +135,23 @@ public class EditorSession : ISession
 
         if (CurrentTool is PlaceWallTool placeWallTool)
         {
-            if (input.Keyboard.GetButton(Keys.OemPlus).WasPressed)
+            var delta = 10;
+            if (input.Keyboard.Modifiers.Shift)
             {
-                placeWallTool.Radius += 10;
+                delta *= 10;
             }
             
+            if (input.Keyboard.GetButton(Keys.OemPlus).WasPressed)
+            {
+                placeWallTool.Radius += delta;
+            }
+
             if (input.Keyboard.GetButton(Keys.OemMinus).WasPressed)
             {
-                placeWallTool.Radius -= 10;
+                placeWallTool.Radius -= delta;
             }
         }
     }
-
-    public event Action? RequestPlay;
 
     public void Update(float dt)
     {
@@ -137,33 +160,52 @@ public class EditorSession : ISession
     public void Draw(Painter painter)
     {
         painter.BeginSpriteBatch(_camera.CanvasToScreen);
-        
+
         _world.LoadLevel(CurrentLevel);
-        
+
         foreach (var entity in _world.Entities)
         {
             entity.Draw(painter);
             entity.Update(1f);
         }
-        
+
         painter.DrawLineRectangle(new RectangleF(0, 0, 1920, 1080), new LineDrawSettings {Thickness = 5});
 
-        
         painter.EndSpriteBatch();
-        
+
         painter.BeginSpriteBatch();
 
-        painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 25), CurrentTool.DebugInfo(),
+        painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 25),
+            _levelIndex + "\n" + CurrentTool.DebugInfo(),
             _camera.OutputResolution.ToRectangleF(), Alignment.BottomLeft, new DrawSettings());
         painter.EndSpriteBatch();
     }
+
+    private void LoadCurrentLevel()
+    {
+        CurrentLevel = JsonConvert.DeserializeObject<Level>(Client.Debug.RepoFileSystem.ReadFile(LevelName())) ??
+                       new Level();
+    }
+
+    private void SaveCurrentLevel()
+    {
+        var levelSerialized = JsonConvert.SerializeObject(CurrentLevel, Formatting.Indented);
+        Client.Debug.RepoFileSystem.WriteToFile(LevelName(), levelSerialized);
+    }
+
+    private string LevelName()
+    {
+        return $"level{_levelIndex}.json";
+    }
+
+    public event Action? RequestPlay;
 }
 
 public class PlaceFoodTool : EditorTool
 {
     public override void Use(Vector2 mousePosition, Level level)
     {
-        level.Coins.Add(new SerializableVector2(mousePosition));
+        level.Foods.Add(new SerializableVector2(mousePosition));
     }
 }
 
@@ -174,21 +216,21 @@ public class Level
     public SerializableVector2 GoalSpawnPosition { get; set; } = new();
 
     [JsonProperty("obstacles")]
-    public List<WallData> Walls { get; set; } = new();
+    public List<WallData> Obstacles { get; set; } = new();
 
     [JsonProperty("coins")]
-    public List<SerializableVector2> Coins { get; set; } = new();
+    public List<SerializableVector2> Foods { get; set; } = new();
 
     public void DeleteRelatedData(Entity entity)
     {
         if (entity is Obstacle)
         {
-            Walls.RemoveAll(wall => wall.Position.ToVector2() == entity.Position);
+            Obstacles.RemoveAll(wall => wall.Position.ToVector2() == entity.Position);
         }
 
         if (entity is Food)
         {
-            Coins.RemoveAll(coinPosition => coinPosition.ToVector2() == entity.Position);
+            Foods.RemoveAll(coinPosition => coinPosition.ToVector2() == entity.Position);
         }
     }
 }
@@ -217,7 +259,7 @@ public class PlaceWallTool : EditorTool
 
     public override void Use(Vector2 mousePosition, Level level)
     {
-        level.Walls.Add(new WallData
+        level.Obstacles.Add(new WallData
         {
             Position = new SerializableVector2(mousePosition),
             Radius = Radius

@@ -7,6 +7,7 @@ using LD56.CartridgeManagement;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
+using Newtonsoft.Json;
 
 namespace LD56.Gameplay;
 
@@ -16,16 +17,15 @@ public class LdSession : ISession
     private readonly SoundEffectInstance _coinSound;
     private readonly List<BackgroundDust> _dustLayers = new();
     private readonly SoundEffectInstance _monsterSound;
-    public World World { get; } = new();
-    public event Action? RequestEditor;
 
     private int _buttonInput;
     private Food? _nearestFood;
+    private int _levelIndex;
 
     public LdSession(RealWindow runtimeWindow, ClientFileSystem runtimeFileSystem)
     {
         _camera = new Camera(runtimeWindow.RenderResolution.ToVector2());
-        
+
         _dustLayers.Add(new BackgroundDust(_camera, 0.9f));
         _dustLayers.Add(new BackgroundDust(_camera, 4f));
         _dustLayers.Add(new BackgroundDust(_camera, 8f));
@@ -43,6 +43,8 @@ public class LdSession : ISession
         LdResourceAssets.Instance.SoundInstances["monster_breath"].Play();
     }
 
+    public World World { get; } = new();
+
     public void OnHotReload()
     {
     }
@@ -57,7 +59,7 @@ public class LdSession : ISession
         if (input.Keyboard.GetButton(Keys.Space).WasPressed)
         {
         }
-        
+
         if (input.Keyboard.GetButton(Keys.F4).WasPressed)
         {
             RequestEditor?.Invoke();
@@ -73,16 +75,20 @@ public class LdSession : ISession
             entity.Update(dt);
         }
 
+        HandleFood();
+
         HandleCamera();
 
         World.Entities.RemoveAll(e => e.FlaggedForDestroy);
 
-        var monsterBreathVolume = Math.Clamp(1 - Vector2.Distance(World.Player.Position, World.Goal.Position) / 2000, 0, 1);
+        var monsterBreathVolume =
+            Math.Clamp(1 - Vector2.Distance(World.Player.Position, World.Goal.Position) / 2000, 0, 1);
         _monsterSound.Volume = monsterBreathVolume;
 
         if (_nearestFood != null && World.Player.HeldFood == null)
         {
-            var coinVolume = Math.Clamp(1 - Vector2.Distance(World.Player.Position, _nearestFood.Position) / 2000, 0, 1) * 0.1f;
+            var coinVolume =
+                Math.Clamp(1 - Vector2.Distance(World.Player.Position, _nearestFood.Position) / 2000, 0, 1) * 0.1f;
             _coinSound.Volume = coinVolume;
         }
         else
@@ -145,6 +151,30 @@ public class LdSession : ISession
         }
 
         painter.EndSpriteBatch();
+    }
+
+    public event Action? RequestEditor;
+
+    private void HandleFood()
+    {
+        if (_nearestFood?.FlaggedForDestroy == true)
+        {
+            _nearestFood = null;
+        }
+
+        var food = World.Entities.Where(a => a is Food food && food.IsEaten == false).Cast<Food>().ToList();
+        food.Sort((a, b) =>
+            (a.Position - World.Player.Position).Length().CompareTo((b.Position - World.Player.Position).Length()));
+
+        _nearestFood = food.FirstOrDefault();
+
+        if (_nearestFood == null && World.Player.HeldFood == null)
+        {
+            _levelIndex++;
+            var level = JsonConvert.DeserializeObject<Level>(Client.Debug.RepoFileSystem.ReadFile($"level{_levelIndex}.json")) ??
+                new Level();
+            World.LoadLevelSeamless(level);
+        }
     }
 
     private void HandleCamera(Painter? debugPainter = null)

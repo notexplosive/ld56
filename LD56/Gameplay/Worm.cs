@@ -26,9 +26,9 @@ public class Worm : Entity
     public Worm(World world)
     {
         _world = world;
-        _facingAngle = 0f;
+        _facingAngle = -MathF.PI / 2f;
         _minimumSpeed = 200f;
-        _maximumSpeed = 800f;
+        _maximumSpeed = 1200f;
         _steeringPower = 1.5f;
         _forwardSpeed = _minimumSpeed;
 
@@ -41,6 +41,14 @@ public class Worm : Entity
         _tailSegments.Add(new TailSegment());
         _tailSegments.Add(new TailSegment());
         _tailSegments.Add(new TailSegment());
+    }
+
+    public void MoveAllTailSegmentsToHead()
+    {
+        foreach (var tailSegment in _tailSegments)
+        {
+            tailSegment.Position = Position;
+        }
     }
 
     public float BankPercent
@@ -99,7 +107,7 @@ public class Worm : Entity
 
         if (DirectionalInput == 0)
         {
-            _forwardSpeed += dt * 200f;
+            _forwardSpeed += dt * 400f;
         }
         else
         {

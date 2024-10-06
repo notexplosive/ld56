@@ -24,17 +24,29 @@ public class LdCartridge(IRuntime runtime) : BasicGameCartridge(runtime)
 
         _editorSession.RequestPlay += () =>
         {
-            _session = _gameSession;
-            _gameSession.World.LoadLevel(_editorSession.CurrentLevel);
+            if (Client.Debug.IsPassiveOrActive)
+            {
+                _session = _gameSession;
+                _gameSession.World.LoadLevel(_editorSession.CurrentLevel);
+            }
         };
 
         _gameSession.RequestEditor += () =>
         {
-            _session = _editorSession;
+            if (Client.Debug.IsPassiveOrActive)
+            {
+                _session = _editorSession;
+            }
         };
-        
-        
-        _session = _editorSession;
+
+        if (Client.Debug.IsPassiveOrActive)
+        {
+            _session = _editorSession;
+        }
+        else
+        {
+            _session = _gameSession;
+        }
     }
 
     public override void UpdateInput(ConsumableInput input, HitTestStack hitTestStack)
