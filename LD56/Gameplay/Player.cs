@@ -258,7 +258,7 @@ public class Player : Entity
 
         _recoveryCooldown = 1f;
 
-        if (_tailSegments.Count > 1)
+        if (_tailSegments.Count > 2)
         {
             _tailSegments.RemoveAt(_tailSegments.Count - 1);
         }

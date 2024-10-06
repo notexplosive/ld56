@@ -5,7 +5,7 @@ files.deleteDirectory(".build")
 dotnet.publish("LD56", ".build")
 
 files.copy("Resource", ".build/Resource")
-files.copy("save.json", ".build")
+files.copy("Levels", ".build/Levels")
 
 for i, file in ipairs(files.list(".build", true, "pdb")) do
     files.delete(file)

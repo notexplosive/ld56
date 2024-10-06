@@ -141,7 +141,7 @@ public class LdSession : ISession
 
         if (World.HasRequestedReload)
         {
-            World.LoadCurrentLevel();
+            World.LoadCurrentLevel(false);
             World.HasRequestedReload = false;
         }
 

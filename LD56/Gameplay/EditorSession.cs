@@ -53,15 +53,16 @@ public class EditorSession : ISession
         if (input.Mouse.ScrollDelta() != 0)
         {
             var scrollDelta = input.Mouse.ScrollDelta();
+            var scrollMultiplier = 1f;
 
             if (scrollDelta > 0)
             {
-                _camera.ZoomOutFrom(-scrollDelta / 10, mousePosition);
+                _camera.ZoomOutFrom((int)(-scrollDelta * scrollMultiplier), mousePosition);
             }
 
             if (scrollDelta < 0)
             {
-                _camera.ZoomInTowards(scrollDelta / 10, mousePosition);
+                _camera.ZoomInTowards((int)(scrollDelta * scrollMultiplier), mousePosition);
             }
 
             input.Mouse.ConsumeScrollDelta();
@@ -199,7 +200,7 @@ public class EditorSession : ISession
 
     private string LevelName()
     {
-        return $"level{_levelIndex}.json";
+        return $"Levels/level{_levelIndex}.json";
     }
 
     public event Action? RequestPlay;

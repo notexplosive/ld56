@@ -29,7 +29,7 @@ public class World
         LoadLevelWithOffset(level, Vector2.Zero);
     }
 
-    private void CreatePlayerAndGoal(Vector2 spawnPosition)
+    public void CreatePlayerAndGoal(Vector2 spawnPosition)
     {
         Goal = new Goal(this);
         Goal.Position = spawnPosition;
@@ -44,11 +44,17 @@ public class World
         return obstacle;
     }
 
-    public void LoadCurrentLevel()
+    public void LoadCurrentLevel(bool spawnNewPlayer)
     {
         var level = JsonConvert.DeserializeObject<Level>(
-                        Client.Debug.RepoFileSystem.ReadFile($"level{_levelIndex}.json")) ??
+                        Client.Debug.RepoFileSystem.ReadFile($"Levels/level{_levelIndex}.json")) ??
                     new Level();
+        
+        if (spawnNewPlayer)
+        {
+            CreatePlayerAndGoal(level.GoalSpawnPosition.ToVector2());
+        }
+        
         LoadLevelSeamless(level);
     }
     
@@ -90,7 +96,7 @@ public class World
     public void LoadNextLevel()
     {
         _levelIndex++;
-        LoadCurrentLevel();
+        LoadCurrentLevel(false);
     }
 
     public void RequestReload()

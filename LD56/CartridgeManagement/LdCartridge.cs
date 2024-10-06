@@ -46,6 +46,7 @@ public class LdCartridge(IRuntime runtime) : BasicGameCartridge(runtime)
         }
         else
         {
+            _gameSession.World.LoadCurrentLevel(true);
             _session = _gameSession;
         }
     }
