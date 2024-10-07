@@ -184,7 +184,7 @@ public class EditorSession : ISession
 
         painter.BeginSpriteBatch();
 
-        painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 25),
+        painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 25),
             _levelIndex + "\n" + CurrentTool.DebugInfo(),
             _camera.OutputResolution.ToRectangleF(), Alignment.BottomLeft, new DrawSettings());
         painter.EndSpriteBatch();

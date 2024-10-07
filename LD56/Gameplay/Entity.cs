@@ -11,7 +11,7 @@ public abstract class Entity : IDrawHook, IUpdateHook
     public bool FlaggedForDestroy { get; private set; }
     public Vector2 Position { get; set; }
     public Scale2D Scale { get; set; } = Scale2D.One;
-    public Depth Depth { get; set; } = Depth.Middle.AsInt;
+    public Depth Depth { get; set; } = Depth.Middle;
 
     public abstract void Draw(Painter painter);
 

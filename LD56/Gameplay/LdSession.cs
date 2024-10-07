@@ -258,16 +258,16 @@ public class LdSession : ISession
 
         if (World.Player == null)
         {
-            painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 100), "Hold Both Buttons",
+            painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 100), "Hold Both Buttons",
                 _camera.OutputResolution.ToRectangleF().Inflated(-300f, -100), Alignment.TopCenter, new DrawSettings());
 
             var leftNoise = _leftIsDown ? Client.Random.Dirty.NextNormalVector2() * 15 : new Vector2();
             var rightNoise = _rightIsDown ? Client.Random.Dirty.NextNormalVector2() * 15 : new Vector2();
             
-            painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 250), "A",
+            painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 250), "A",
                 _camera.OutputResolution.ToRectangleF().Inflated(-300f, 0).Moved(leftNoise), Alignment.CenterLeft, new DrawSettings());
             
-            painter.DrawStringWithinRectangle(Client.Assets.GetFont("engine/console-font", 250), "D",
+            painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 250), "D",
                 _camera.OutputResolution.ToRectangleF().Inflated(-300f, 0).Moved(rightNoise), Alignment.CenterRight, new DrawSettings());
         }
 

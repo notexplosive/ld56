@@ -100,6 +100,8 @@ public class World
             enemy.Position = enemySpawn.ToVector2() + offset;
             Entities.Add(enemy);
         }
+        
+        Entities.Add(new ObstacleRenderer(this));
     }
 
     public void PlayerDied()

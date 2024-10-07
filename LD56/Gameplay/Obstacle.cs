@@ -16,7 +16,7 @@ public class Obstacle : Entity
     public override void Draw(Painter painter)
     {
         Constants.CircleImage.DrawAsRectangle(painter, new RectangleF(Position, new Vector2(Radius * 2f)),
-            new DrawSettings {Origin = DrawOrigin.Center, Color = Color.White.DimmedBy(0.2f)});
+            new DrawSettings {Origin = DrawOrigin.Center, Color = ColorExtensions.FromRgbHex(0x060608), Depth = Depth + 10});
     }
 
     public override void Update(float dt)

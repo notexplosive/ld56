@@ -90,3 +90,23 @@
 #begin engine/pointfree.ttf
 /copy:engine/pointfree.ttf
 
+#begin fishbone/font.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:fishbone/font.spritefont
+
+#begin fishbone/MajorMonoDisplay-Regular.ttf
+/copy:fishbone/MajorMonoDisplay-Regular.ttf
+
+#begin fishbone/OFL.txt
+/copy:fishbone/OFL.txt
+
+#begin fishbone/Tajawal-Light.ttf
+/copy:fishbone/Tajawal-Light.ttf
+
+#begin fishbone/Tajawal-Medium.ttf
+/copy:fishbone/Tajawal-Medium.ttf
+
+
