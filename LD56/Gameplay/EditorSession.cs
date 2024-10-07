@@ -31,7 +31,11 @@ public class EditorSession : ISession
             new PlacePlayerTool(),
             new PlaceWallTool(),
             new PlaceFoodTool(),
-            new PlaceEnemyTool()
+            new PlaceEnemyTool(),
+            new PlaceCurrentTool(0),
+            new PlaceCurrentTool(-MathF.PI/2f),
+            new PlaceCurrentTool(MathF.PI),
+            new PlaceCurrentTool(MathF.PI/2f),
         };
 
         LoadCurrentLevel();
@@ -171,7 +175,7 @@ public class EditorSession : ISession
         foreach (var entity in _world.Entities)
         {
             entity.Draw(painter);
-            entity.Update(1f);
+            entity.Update(1/60f);
         }
 
         painter.DrawLineRectangle(new RectangleF(0, 0, 1920, 1080), new LineDrawSettings {Thickness = 5});
@@ -222,6 +226,32 @@ public class PlaceEnemyTool : EditorTool
     }
 }
 
+public class PlaceCurrentTool : EditorTool
+{
+    public PlaceCurrentTool(float angle)
+    {
+        Angle = angle;
+    }
+    
+    public override void Use(Vector2 mousePosition, Level level)
+    {
+        level.Currents.Add(new CurrentData
+        {
+            Position = new SerializableVector2(mousePosition),
+            Radius = Radius,
+            Angle = Angle
+        });
+    }
+    
+    public float Radius { get; set; } = 500f;
+    public float Angle { get; set; }
+
+    public override string DebugInfo()
+    {
+        return base.DebugInfo() + " " + Radius +  " radius, " + Angle + " degrees";
+    }
+}
+
 [Serializable]
 public class Level
 {
@@ -230,6 +260,9 @@ public class Level
 
     [JsonProperty("obstacles")]
     public List<WallData> Obstacles { get; set; } = new();
+    
+    [JsonProperty("current")]
+    public List<CurrentData> Currents { get; set; } = new();
 
     [JsonProperty("coins")]
     public List<SerializableVector2> Foods { get; set; } = new();
@@ -251,9 +284,27 @@ public class Level
 
         if (entity is Enemy)
         {
-            Enemies.RemoveAll(coinPosition => coinPosition.ToVector2() == entity.Position);
+            Enemies.RemoveAll(enemyPosition => enemyPosition.ToVector2() == entity.Position);
+        }
+
+        if (entity is Current)
+        {
+            Currents.RemoveAll(current => current.Position.ToVector2() == entity.Position);
         }
     }
+}
+
+[Serializable]
+public class CurrentData
+{
+    [JsonProperty("position")]
+    public SerializableVector2 Position { get; set; } = new();
+
+    [JsonProperty("radius")]
+    public float Radius { get; set; } = 100;
+    
+    [JsonProperty("angle")]
+    public float Angle { get; set; }
 }
 
 [Serializable]

@@ -45,6 +45,13 @@ public class World
         obstacle.Position = wallPosition;
         return obstacle;
     }
+    
+    private Entity CreateCurrent(Vector2 position, float wallRadius, float angle)
+    {
+        var obstacle = new Current(this, wallRadius, angle);
+        obstacle.Position = position;
+        return obstacle;
+    }
 
     public void LoadCurrentLevel(bool spawnNewPlayer)
     {
@@ -73,6 +80,11 @@ public class World
         foreach (var wall in level.Obstacles)
         {
             Entities.Add(CreateWall(wall.Position.ToVector2() + offset, wall.Radius));
+        }
+        
+        foreach (var currentDAta in level.Currents)
+        {
+            Entities.Add(CreateCurrent(currentDAta.Position.ToVector2() + offset, currentDAta.Radius, currentDAta.Angle));
         }
 
         foreach (var coin in level.Foods)

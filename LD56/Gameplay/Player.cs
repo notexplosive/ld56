@@ -272,4 +272,13 @@ public class Player : Entity
     {
         _forwardSpeed = _maximumSpeed;
     }
+
+    public void PushInDirection(float angle, float force, float dt)
+    {
+        var pushDirection = Vector2Extensions.Polar(force, angle);
+        var myDirection = Vector2Extensions.Polar(_forwardSpeed, _facingAngle);
+
+        var myNewDirection = Vector2.Lerp(pushDirection, myDirection, 0.05f);
+        _facingAngle = myNewDirection.GetAngleFromUnitX();
+    }
 }
