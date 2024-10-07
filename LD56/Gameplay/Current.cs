@@ -73,7 +73,7 @@ public class Current : Entity
 
         for (var index = 0; index < _particles.Count; index++)
         {
-            _particles[index] += Vector2Extensions.Polar(dt * 500, Angle);
+            _particles[index] += Vector2Extensions.Polar(dt * 1000, Angle);
 
             
             if ((_particles[index]).Length() > Radius)

@@ -4,6 +4,7 @@
     "y": 0.0
   },
   "obstacles": [],
+  "current": [],
   "coins": [],
   "enemies": []
 }
