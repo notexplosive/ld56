@@ -23,7 +23,7 @@ public class Player : Entity
     private float _facingAngle;
     private float _forwardSpeed;
     public Food? HeldFood { get; private set; }
-    private float _tailFurlPercent;
+    private float _tailFurlPercent = 1f;
     private float _recoveryCooldown;
 
     public Player(World world)
@@ -204,7 +204,7 @@ public class Player : Entity
             }
         }
 
-        _tailFurlPercent = Math.Clamp(_tailFurlPercent - dt * 2, 0, 1f);
+        _tailFurlPercent = (_forwardSpeed - _minimumSpeed) / _maximumSpeed;
 
         if (_bankCooldown > 0)
         {
@@ -245,6 +245,7 @@ public class Player : Entity
 
     public void TakeDamage()
     {
+        Boost();
         if (_recoveryCooldown > 0)
         {
             return;
