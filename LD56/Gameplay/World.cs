@@ -11,6 +11,7 @@ public class World
 {
     private int _levelIndex;
     public bool HasRequestedReload { get; set; }
+    public bool HasSpawnedAtLeastOnce { get; set; }
 
     public Goal Goal { get; private set; }
     public Player? Player => Goal.Player;

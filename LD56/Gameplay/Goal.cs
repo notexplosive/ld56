@@ -48,6 +48,7 @@ public class Goal : Entity, IFocalPoint
 
     public void CreatePlayer()
     {
+        _world.HasSpawnedAtLeastOnce = true;
         LdResourceAssets.Instance.PlaySound("player_spawn", new SoundEffectSettings());
         Player = new Player(_world);
         Player.Position = Position;

@@ -263,27 +263,31 @@ public class LdSession : ISession
         if (World.Player == null)
         {
             var timer = Ease.QuadFastSlow(Math.Clamp(1 - _startTimer, 0, 1));
-            painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 100), "Hold A and D to start",
+            painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 100), $"Hold A and D to {(World.HasSpawnedAtLeastOnce? "revive" : "start")}",
                 _camera.OutputResolution.ToRectangleF().Inflated(-300f, -150 + timer * 250f), Alignment.BottomCenter, new DrawSettings());
 
-            var contentWarningText = "Hold Space to see Content Warnings";
-
-            if (Client.Input.Keyboard.GetButton(Keys.Space).IsDown)
-            {
-                contentWarningText = "Content Warnings: Arachnids, Tentacles";
-            }
-            
-            painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 50), contentWarningText,
-                _camera.OutputResolution.ToRectangleF().Inflated(-300f, -100 + timer * 250f), Alignment.BottomCenter, new DrawSettings());
-
-            var leftNoise = _leftIsDown ? Client.Random.Dirty.NextNormalVector2() * 15 : new Vector2();
-            var rightNoise = _rightIsDown ? Client.Random.Dirty.NextNormalVector2() * 15 : new Vector2();
+            var leftNoise = _leftIsDown ? Client.Random.Dirty.NextNormalVector2() * 5 : new Vector2();
+            var rightNoise = _rightIsDown ? Client.Random.Dirty.NextNormalVector2() * 5 : new Vector2();
             
             painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 250), "A",
                 _camera.OutputResolution.ToRectangleF().Inflated(-300f + 500f * timer, 0).Moved(leftNoise), Alignment.CenterLeft, new DrawSettings());
             
             painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 250), "D",
                 _camera.OutputResolution.ToRectangleF().Inflated(-300f + 500f * timer, 0).Moved(rightNoise), Alignment.CenterRight, new DrawSettings());
+
+            if (!World.HasSpawnedAtLeastOnce)
+            {
+                var contentWarningText = "Hold Space to see Content Warnings";
+
+                if (Client.Input.Keyboard.GetButton(Keys.Space).IsDown)
+                {
+                    contentWarningText = "Content Warnings: Arachnids, Tentacles";
+                }
+
+                painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 50), contentWarningText,
+                    _camera.OutputResolution.ToRectangleF().Inflated(-300f, -100 + timer * 250f),
+                    Alignment.BottomCenter, new DrawSettings());
+            }
         }
 
         painter.EndSpriteBatch();

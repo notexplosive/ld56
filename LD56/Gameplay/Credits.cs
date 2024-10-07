@@ -28,7 +28,7 @@ public class Credits : Entity
         painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 120), "fishbone", cameraRectangle.Moved(new Vector2(0, -300)),
             Alignment.Center, new DrawSettings{Color = Color.White.WithMultipliedOpacity(CalculateFade(1f))});
         
-        painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 60), "Made in 72 Hours\nby NotExplosive", cameraRectangle.Moved(new Vector2(0, 300)),
+        painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 60), "Made in 72 hours\nby NotExplosive", cameraRectangle.Moved(new Vector2(0, 300)),
             Alignment.Center, new DrawSettings{Color = Color.White.WithMultipliedOpacity(CalculateFade(4f))});
         
         painter.DrawStringWithinRectangle(Client.Assets.GetFont("fishbone/font", 30), "Programmed in MonoGame and .NET\nSFX & Music made in FuncSynth\nnotexplosive.net", cameraRectangle.Inflated(0, -20),
